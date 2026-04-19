@@ -1,64 +1,86 @@
 ﻿@model St10439541_PROG7311_P2.Models.ServiceRequest
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Service Request";
+    var contracts = ViewBag.Contracts as SelectList;
 }
 
-<h1>Edit</h1>
+<h1>Edit Service Request</h1>
 
-<h4>ServiceRequest</h4>
 <hr />
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <form asp-action="Edit">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="ServiceRequestId" />
-            <div class="form-group">
+            <input type="hidden" asp-for="AmountZAR" />
+            <input type="hidden" asp-for="ExchangeRateUsed" />
+
+            <div class="form-group mb-3">
                 <label asp-for="ContractId" class="control-label"></label>
-                <select asp-for="ContractId" class="form-control" asp-items="ViewBag.ContractId"></select>
+                <select asp-for="ContractId" class="form-control" asp-items="@contracts">
+                    <option value="">-- Select Contract --</option>
+                </select>
                 <span asp-validation-for="ContractId" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
                 <span asp-validation-for="Description" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="AmountUSD" class="control-label"></label>
-                <input asp-for="AmountUSD" class="form-control" />
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input asp-for="AmountUSD" class="form-control" id="amountUSD" step="0.01" />
+                </div>
                 <span asp-validation-for="AmountUSD" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="AmountZAR" class="control-label"></label>
-                <input asp-for="AmountZAR" class="form-control" />
-                <span asp-validation-for="AmountZAR" class="text-danger"></span>
-            </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="Status" class="control-label"></label>
-                <select asp-for="Status" class="form-control"></select>
+                <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<St10439541_PROG7311_P2.Models.RequestStatus>()"></select>
                 <span asp-validation-for="Status" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
+
+            <div class="form-group mb-3">
+                <label class="control-label">Amount (ZAR)</label>
+                <div class="input-group">
+                    <span class="input-group-text">R</span>
+                    <input type="text" class="form-control" id="amountZAR" readonly disabled value="@Model.AmountZAR.ToString("F2")" />
+                </div>
+                <small class="text-muted">Exchange Rate Used: @Model.ExchangeRateUsed.ToString("F2") ZAR per USD</small>
             </div>
+
             <div class="form-group">
-                <label asp-for="ExchangeRateUsed" class="control-label"></label>
-                <input asp-for="ExchangeRateUsed" class="form-control" />
-                <span asp-validation-for="ExchangeRateUsed" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
             </div>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        let currentRate = @Model.ExchangeRateUsed;
+
+        function calculateZAR() {
+            const usdAmount = parseFloat(document.getElementById('amountUSD').value) || 0;
+            const zarAmount = usdAmount * currentRate;
+            document.getElementById('amountZAR').value = zarAmount.toFixed(2);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const usdInput = document.getElementById('amountUSD');
+            if (usdInput) {
+                usdInput.addEventListener('input', calculateZAR);
+            }
+        });
+    </script>
 }

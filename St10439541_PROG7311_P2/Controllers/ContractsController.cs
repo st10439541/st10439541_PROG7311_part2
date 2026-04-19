@@ -1,10 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Models;
 using St10439541_PROG7311_P2.Services;
 
-namespace TechMoveLogistics.Controllers
+namespace St10439541_PROG7311_P2.Controllers  
 {
     public class ContractsController : Controller
     {
@@ -117,6 +122,7 @@ namespace TechMoveLogistics.Controllers
             {
                 _context.Add(contract);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Created new contract (ID: {ContractId}) for Client {ClientId}", contract.ContractId, contract.ClientId);
                 return RedirectToAction(nameof(Index));
             }
 
@@ -187,6 +193,7 @@ namespace TechMoveLogistics.Controllers
                 {
                     _context.Update(contract);
                     await _context.SaveChangesAsync();
+                    _logger.LogInformation("Updated contract (ID: {ContractId})", contract.ContractId);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -200,6 +207,34 @@ namespace TechMoveLogistics.Controllers
             }
             ViewBag.Clients = await _context.Clients.ToListAsync();
             return View(contract);
+        }
+
+        // GET: Contracts/Delete/5
+        public async Task<IActionResult> Delete(int id)
+        {
+            var contract = await _context.Contracts
+                .Include(c => c.Client)
+                .FirstOrDefaultAsync(c => c.ContractId == id);
+            if (contract == null)
+            {
+                return NotFound();
+            }
+            return View(contract);
+        }
+
+        // POST: Contracts/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var contract = await _context.Contracts.FindAsync(id);
+            if (contract != null)
+            {
+                _context.Contracts.Remove(contract);
+                _logger.LogWarning("Deleted contract (ID: {ContractId})", contract.ContractId);
+            }
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Contracts/DownloadPdf/5

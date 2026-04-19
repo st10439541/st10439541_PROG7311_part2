@@ -1,71 +1,55 @@
 ﻿@model IEnumerable<St10439541_PROG7311_P2.Models.ServiceRequest>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Service Requests";
 }
 
-<h1>Index</h1>
+<h1>Service Requests</h1>
 
 <p>
-    <a asp-action="Create">Create New</a>
+    <a asp-action="Create" class="btn btn-primary">Create New Service Request</a>
 </p>
-<table class="table">
+
+<table class="table table-striped">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.AmountUSD)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.AmountZAR)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ExchangeRateUsed)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Contract)
-            </th>
-            <th></th>
+            <th>Client</th>
+            <th>Contract</th>
+            <th>Description</th>
+            <th>Amount (USD)</th>
+            <th>Amount (ZAR)</th>
+            <th>Status</th>
+            <th>Created At</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.AmountUSD)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.AmountZAR)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ExchangeRateUsed)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Contract.ContractId)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ServiceRequestId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.ServiceRequestId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.ServiceRequestId">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Contract?.Client?.Name</td>
+                <td>@item.ContractId</td>
+                <td>@item.Description</td>
+                <td>$@item.AmountUSD.ToString("F2")</td>
+                <td>R@item.AmountZAR.ToString("F2")</td>
+                <td>
+                    <span class="badge bg-@(item.Status.ToString() switch {
+                        "Pending" => "warning",
+                        "InProgress" => "info",
+                        "Completed" => "success",
+                        "Cancelled" => "danger",
+                        _ => "secondary"
+                    })">
+                        @item.Status
+                    </span>
+                </td>
+                <td>@item.CreatedAt.ToShortDateString()</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-info">Details</a>
+                    <a asp-action="Edit" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-warning">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>

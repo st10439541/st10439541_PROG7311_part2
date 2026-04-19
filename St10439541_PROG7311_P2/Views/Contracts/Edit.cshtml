@@ -1,64 +1,85 @@
 ﻿@model St10439541_PROG7311_P2.Models.Contract
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Contract";
+    var clients = ViewBag.Clients as List<St10439541_PROG7311_P2.Models.Client>;
 }
 
-<h1>Edit</h1>
+<h1>Edit Contract</h1>
 
-<h4>Contract</h4>
 <hr />
 <div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
+    <div class="col-md-6">
+        <form asp-action="Edit" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="ContractId" />
-            <div class="form-group">
+            <input type="hidden" asp-for="PdfFilePath" />
+
+            <div class="form-group mb-3">
                 <label asp-for="ClientId" class="control-label"></label>
-                <select asp-for="ClientId" class="form-control" asp-items="ViewBag.ClientId"></select>
+                <select asp-for="ClientId" class="form-control" asp-items="@(new SelectList(clients, "ClientId", "Name", Model.ClientId))">
+                    <option value="">-- Select Client --</option>
+                </select>
                 <span asp-validation-for="ClientId" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="StartDate" class="control-label"></label>
-                <input asp-for="StartDate" class="form-control" />
+                <input asp-for="StartDate" class="form-control" type="date" />
                 <span asp-validation-for="StartDate" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="EndDate" class="control-label"></label>
-                <input asp-for="EndDate" class="form-control" />
+                <input asp-for="EndDate" class="form-control" type="date" />
                 <span asp-validation-for="EndDate" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="Status" class="control-label"></label>
-                <select asp-for="Status" class="form-control"></select>
+                <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<St10439541_PROG7311_P2.Models.ContractStatus>()"></select>
                 <span asp-validation-for="Status" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="ServiceLevel" class="control-label"></label>
-                <select asp-for="ServiceLevel" class="form-control"></select>
+                <select asp-for="ServiceLevel" class="form-control" asp-items="Html.GetEnumSelectList<St10439541_PROG7311_P2.Models.ServiceLevel>()"></select>
                 <span asp-validation-for="ServiceLevel" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="TermsAndConditions" class="control-label"></label>
-                <input asp-for="TermsAndConditions" class="form-control" />
+                <textarea asp-for="TermsAndConditions" class="form-control" rows="3"></textarea>
                 <span asp-validation-for="TermsAndConditions" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="PdfFilePath" class="control-label"></label>
-                <input asp-for="PdfFilePath" class="form-control" />
-                <span asp-validation-for="PdfFilePath" class="text-danger"></span>
+
+            @if (!string.IsNullOrEmpty(Model.PdfFilePath))
+            {
+                <div class="form-group mb-3">
+                    <label class="control-label">Current PDF</label>
+                    <div>
+                        <a asp-action="DownloadPdf" asp-route-id="@Model.ContractId" class="btn btn-sm btn-info">Download Current PDF</a>
+                    </div>
+                </div>
+            }
+
+            <div class="form-group mb-3">
+                <label asp-for="PdfFile" class="control-label">Replace Signed Agreement (PDF)</label>
+                <input asp-for="PdfFile" class="form-control" type="file" accept=".pdf" />
+                <span asp-validation-for="PdfFile" class="text-danger"></span>
+                <small class="text-muted">Leave empty to keep current PDF. Only PDF files up to 10MB are allowed.</small>
             </div>
+
             <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
             </div>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

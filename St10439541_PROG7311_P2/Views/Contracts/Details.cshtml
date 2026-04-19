@@ -1,60 +1,109 @@
 ﻿@model St10439541_PROG7311_P2.Models.Contract
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Contract Details";
 }
 
-<h1>Details</h1>
+<h1>Contract Details</h1>
 
 <div>
-    <h4>Contract</h4>
     <hr />
     <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.StartDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.StartDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.EndDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.EndDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ServiceLevel)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ServiceLevel)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TermsAndConditions)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TermsAndConditions)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PdfFilePath)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PdfFilePath)
-        </dd>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-3">
             @Html.DisplayNameFor(model => model.Client)
         </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Client.Address)
+        <dd class="col-sm-9">
+            @Model.Client?.Name
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.StartDate)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.StartDate)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.EndDate)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.EndDate)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.Status)
+        </dt>
+        <dd class="col-sm-9">
+            <span class="badge bg-@(Model.Status.ToString() switch {
+                "Active" => "success",
+                "Draft" => "warning",
+                "Expired" => "danger",
+                "OnHold" => "secondary",
+                _ => "info"
+            })">
+                @Model.Status
+            </span>
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.ServiceLevel)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.ServiceLevel)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.TermsAndConditions)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.TermsAndConditions)
+        </dd>
+        <dt class="col-sm-3">
+            Signed Agreement
+        </dt>
+        <dd class="col-sm-9">
+            @if (!string.IsNullOrEmpty(Model.PdfFilePath))
+            {
+                <a asp-action="DownloadPdf" asp-route-id="@Model.ContractId" class="btn btn-sm btn-primary">Download PDF</a>
+            }
+            else
+            {
+                <span class="text-muted">No PDF uploaded</span>
+            }
         </dd>
     </dl>
 </div>
+
+<h3>Service Requests</h3>
+@if (Model.ServiceRequests != null && Model.ServiceRequests.Any())
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Request ID</th>
+                <th>Description</th>
+                <th>Amount (USD)</th>
+                <th>Amount (ZAR)</th>
+                <th>Status</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var request in Model.ServiceRequests)
+            {
+                <tr>
+                    <td>@request.ServiceRequestId</td>
+                    <td>@request.Description</td>
+                    <td>$@request.AmountUSD.ToString("F2")</td>
+                    <td>R@request.AmountZAR.ToString("F2")</td>
+                    <td>@request.Status</td>
+                    <td>@request.CreatedAt.ToShortDateString()</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No service requests found for this contract.</p>
+}
+
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.ContractId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <a asp-action="Edit" asp-route-id="@Model.ContractId" class="btn btn-warning">Edit</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
 </div>

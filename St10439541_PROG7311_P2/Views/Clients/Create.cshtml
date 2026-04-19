@@ -1,53 +1,57 @@
 ﻿@model St10439541_PROG7311_P2.Models.Client
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Client";
 }
 
-<h1>Create</h1>
+<h1>Create Client</h1>
 
-<h4>Client</h4>
 <hr />
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <form asp-action="Create">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="Name" class="control-label"></label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="ContactEmail" class="control-label"></label>
                 <input asp-for="ContactEmail" class="form-control" />
                 <span asp-validation-for="ContactEmail" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="ContactPhone" class="control-label"></label>
                 <input asp-for="ContactPhone" class="form-control" />
                 <span asp-validation-for="ContactPhone" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="Address" class="control-label"></label>
-                <input asp-for="Address" class="form-control" />
+                <textarea asp-for="Address" class="form-control" rows="3"></textarea>
                 <span asp-validation-for="Address" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mb-3">
                 <label asp-for="Region" class="control-label"></label>
                 <input asp-for="Region" class="form-control" />
                 <span asp-validation-for="Region" class="text-danger"></span>
             </div>
+
             <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+                <button type="submit" class="btn btn-primary">Create</button>
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
             </div>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

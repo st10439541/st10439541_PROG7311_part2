@@ -1,71 +1,93 @@
 ﻿@model IEnumerable<St10439541_PROG7311_P2.Models.Contract>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Contracts";
 }
 
-<h1>Index</h1>
+<h1>Contracts</h1>
 
 <p>
-    <a asp-action="Create">Create New</a>
+    <a asp-action="Create" class="btn btn-primary">Create New Contract</a>
 </p>
-<table class="table">
+
+<!-- Search/Filter Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>Filter Contracts</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" asp-action="Index">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="startDate" class="form-label">Start Date From:</label>
+                    <input type="date" id="startDate" name="startDate" class="form-control" value="@ViewBag.StartDate" />
+                </div>
+                <div class="col-md-3">
+                    <label for="endDate" class="form-label">End Date To:</label>
+                    <input type="date" id="endDate" name="endDate" class="form-control" value="@ViewBag.EndDate" />
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status:</label>
+                    <select id="status" name="status" class="form-select" asp-items="Html.GetEnumSelectList<St10439541_PROG7311_P2.Models.ContractStatus>()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                    <a asp-action="Index" class="btn btn-secondary">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-striped">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.StartDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.EndDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ServiceLevel)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TermsAndConditions)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PdfFilePath)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Client)
-            </th>
-            <th></th>
+            <th>Client</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th>Service Level</th>
+            <th>PDF</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.StartDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.EndDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ServiceLevel)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.TermsAndConditions)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PdfFilePath)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Client.Address)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ContractId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.ContractId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.ContractId">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Client?.Name</td>
+                <td>@item.StartDate.ToShortDateString()</td>
+                <td>@item.EndDate.ToShortDateString()</td>
+                <td>
+                    <span class="badge bg-@(item.Status.ToString() switch {
+                        "Active" => "success",
+                        "Draft" => "warning",
+                        "Expired" => "danger",
+                        "OnHold" => "secondary",
+                        _ => "info"
+                    })">
+                        @item.Status
+                    </span>
+                </td>
+                <td>@item.ServiceLevel</td>
+                <td>
+                    @if (!string.IsNullOrEmpty(item.PdfFilePath))
+                    {
+                        <a asp-action="DownloadPdf" asp-route-id="@item.ContractId" class="btn btn-sm btn-secondary">Download PDF</a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">No PDF</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.ContractId" class="btn btn-sm btn-info">Details</a>
+                    <a asp-action="Edit" asp-route-id="@item.ContractId" class="btn btn-sm btn-warning">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@item.ContractId" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>

@@ -1,48 +1,80 @@
 ﻿@model St10439541_PROG7311_P2.Models.Client
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Client Details";
 }
 
-<h1>Details</h1>
+<h1>Client Details</h1>
 
 <div>
-    <h4>Client</h4>
     <hr />
     <dl class="row">
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Name)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Name)
         </dd>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.ContactEmail)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.ContactEmail)
         </dd>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.ContactPhone)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.ContactPhone)
         </dd>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Address)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Address)
         </dd>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Region)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Region)
         </dd>
     </dl>
 </div>
+
+<h3>Contracts</h3>
+@if (Model.Contracts != null && Model.Contracts.Any())
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Contract ID</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Status</th>
+                <th>Service Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var contract in Model.Contracts)
+            {
+                <tr>
+                    <td>@contract.ContractId</td>
+                    <td>@contract.StartDate.ToShortDateString()</td>
+                    <td>@contract.EndDate.ToShortDateString()</td>
+                    <td>@contract.Status</td>
+                    <td>@contract.ServiceLevel</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No contracts found for this client.</p>
+}
+
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.ClientId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <a asp-action="Edit" asp-route-id="@Model.ClientId" class="btn btn-warning">Edit</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
 </div>
