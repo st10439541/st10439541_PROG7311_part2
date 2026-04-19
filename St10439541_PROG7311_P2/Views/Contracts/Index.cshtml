@@ -1,0 +1,71 @@
+﻿@model IEnumerable<St10439541_PROG7311_P2.Models.Contract>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.StartDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EndDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Status)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ServiceLevel)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TermsAndConditions)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PdfFilePath)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Client)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.StartDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EndDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Status)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ServiceLevel)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TermsAndConditions)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PdfFilePath)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Client.Address)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.ContractId">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.ContractId">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.ContractId">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
