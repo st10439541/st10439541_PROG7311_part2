@@ -9,7 +9,7 @@ using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Models;
 using St10439541_PROG7311_P2.Services;
 
-namespace St10439541_PROG7311_P2.Controllers  
+namespace St10439541_PROG7311_P2.Controllers
 {
     public class ContractsController : Controller
     {
@@ -64,12 +64,17 @@ namespace St10439541_PROG7311_P2.Controllers
         }
 
         // GET: Contracts/Details/5
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(int? id)
         {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
             var contract = await _context.Contracts
                 .Include(c => c.Client)
                 .Include(c => c.ServiceRequests)
-                .FirstOrDefaultAsync(c => c.ContractId == id);
+                .FirstOrDefaultAsync(m => m.ContractId == id);
 
             if (contract == null)
             {
@@ -82,7 +87,9 @@ namespace St10439541_PROG7311_P2.Controllers
         // GET: Contracts/Create
         public async Task<IActionResult> Create()
         {
-            ViewBag.Clients = await _context.Clients.ToListAsync();
+            // Get all clients for the dropdown
+            var clients = await _context.Clients.ToListAsync();
+            ViewBag.Clients = new SelectList(clients, "ClientId", "Name");
             return View();
         }
 
@@ -91,7 +98,9 @@ namespace St10439541_PROG7311_P2.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("ClientId,StartDate,EndDate,Status,ServiceLevel,TermsAndConditions")] Contract contract, IFormFile? PdfFile)
         {
-            ViewBag.Clients = await _context.Clients.ToListAsync();
+            // Repopulate ViewBag.Clients in case of error
+            var clients = await _context.Clients.ToListAsync();
+            ViewBag.Clients = new SelectList(clients, "ClientId", "Name", contract.ClientId);
 
             // Handle file upload
             if (PdfFile != null && PdfFile.Length > 0)
@@ -130,14 +139,23 @@ namespace St10439541_PROG7311_P2.Controllers
         }
 
         // GET: Contracts/Edit/5
-        public async Task<IActionResult> Edit(int id)
+        public async Task<IActionResult> Edit(int? id)
         {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
             var contract = await _context.Contracts.FindAsync(id);
             if (contract == null)
             {
                 return NotFound();
             }
-            ViewBag.Clients = await _context.Clients.ToListAsync();
+
+            // Get all clients for the dropdown
+            var clients = await _context.Clients.ToListAsync();
+            ViewBag.Clients = new SelectList(clients, "ClientId", "Name", contract.ClientId);
+
             return View(contract);
         }
 
@@ -151,6 +169,10 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
+            // Repopulate ViewBag.Clients in case of error
+            var clients = await _context.Clients.ToListAsync();
+            ViewBag.Clients = new SelectList(clients, "ClientId", "Name", contract.ClientId);
+
             // Handle file upload if new file is provided
             if (PdfFile != null && PdfFile.Length > 0)
             {
@@ -158,7 +180,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 if (!validation.IsValid)
                 {
                     ModelState.AddModelError("PdfFile", validation.ErrorMessage);
-                    ViewBag.Clients = await _context.Clients.ToListAsync();
                     return View(contract);
                 }
 
@@ -205,20 +226,26 @@ namespace St10439541_PROG7311_P2.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewBag.Clients = await _context.Clients.ToListAsync();
             return View(contract);
         }
 
         // GET: Contracts/Delete/5
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int? id)
         {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
             var contract = await _context.Contracts
                 .Include(c => c.Client)
-                .FirstOrDefaultAsync(c => c.ContractId == id);
+                .FirstOrDefaultAsync(m => m.ContractId == id);
+
             if (contract == null)
             {
                 return NotFound();
             }
+
             return View(contract);
         }
 
@@ -233,6 +260,7 @@ namespace St10439541_PROG7311_P2.Controllers
                 _context.Contracts.Remove(contract);
                 _logger.LogWarning("Deleted contract (ID: {ContractId})", contract.ContractId);
             }
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }

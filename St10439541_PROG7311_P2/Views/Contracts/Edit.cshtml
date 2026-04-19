@@ -2,7 +2,6 @@
 
 @{
     ViewData["Title"] = "Edit Contract";
-    var clients = ViewBag.Clients as List<St10439541_PROG7311_P2.Models.Client>;
 }
 
 <h1>Edit Contract</h1>
@@ -16,8 +15,8 @@
             <input type="hidden" asp-for="PdfFilePath" />
 
             <div class="form-group mb-3">
-                <label asp-for="ClientId" class="control-label"></label>
-                <select asp-for="ClientId" class="form-control" asp-items="@(new SelectList(clients, "ClientId", "Name", Model.ClientId))">
+                <label asp-for="ClientId" class="control-label">Client</label>
+                <select asp-for="ClientId" class="form-control" asp-items="ViewBag.Clients">
                     <option value="">-- Select Client --</option>
                 </select>
                 <span asp-validation-for="ClientId" class="text-danger"></span>
