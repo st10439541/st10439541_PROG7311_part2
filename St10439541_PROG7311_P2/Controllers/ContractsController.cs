@@ -1,42 +1,71 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Models;
+using St10439541_PROG7311_P2.Services;
 
-namespace St10439541_PROG7311_P2.Controllers
+namespace TechMoveLogistics.Controllers
 {
     public class ContractsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IFileValidationService _fileValidationService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly ILogger<ContractsController> _logger;
 
-        public ContractsController(ApplicationDbContext context)
+        public ContractsController(
+            ApplicationDbContext context,
+            IFileValidationService fileValidationService,
+            IWebHostEnvironment webHostEnvironment,
+            ILogger<ContractsController> logger)
         {
             _context = context;
+            _fileValidationService = fileValidationService;
+            _webHostEnvironment = webHostEnvironment;
+            _logger = logger;
         }
 
         // GET: Contracts
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(DateTime? startDate, DateTime? endDate, ContractStatus? status)
         {
-            var applicationDbContext = _context.Contracts.Include(c => c.Client);
-            return View(await applicationDbContext.ToListAsync());
+            var query = _context.Contracts
+                .Include(c => c.Client)
+                .AsQueryable();
+
+            // Apply filters using LINQ
+            if (startDate.HasValue)
+            {
+                query = query.Where(c => c.StartDate >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(c => c.EndDate <= endDate.Value);
+            }
+
+            if (status.HasValue)
+            {
+                query = query.Where(c => c.Status == status.Value);
+            }
+
+            var contracts = await query.ToListAsync();
+
+            // Store filter values for the view
+            ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
+            ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
+            ViewBag.SelectedStatus = status;
+
+            return View(contracts);
         }
 
         // GET: Contracts/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var contract = await _context.Contracts
                 .Include(c => c.Client)
-                .FirstOrDefaultAsync(m => m.ContractId == id);
+                .Include(c => c.ServiceRequests)
+                .FirstOrDefaultAsync(c => c.ContractId == id);
+
             if (contract == null)
             {
                 return NotFound();
@@ -46,56 +75,110 @@ namespace St10439541_PROG7311_P2.Controllers
         }
 
         // GET: Contracts/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["ClientId"] = new SelectList(_context.Clients, "ClientId", "Address");
+            ViewBag.Clients = await _context.Clients.ToListAsync();
             return View();
         }
 
         // POST: Contracts/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ContractId,ClientId,StartDate,EndDate,Status,ServiceLevel,TermsAndConditions,PdfFilePath")] Contract contract)
+        public async Task<IActionResult> Create([Bind("ClientId,StartDate,EndDate,Status,ServiceLevel,TermsAndConditions")] Contract contract, IFormFile? PdfFile)
         {
+            ViewBag.Clients = await _context.Clients.ToListAsync();
+
+            // Handle file upload
+            if (PdfFile != null && PdfFile.Length > 0)
+            {
+                var validation = _fileValidationService.ValidatePdfFile(PdfFile);
+                if (!validation.IsValid)
+                {
+                    ModelState.AddModelError("PdfFile", validation.ErrorMessage);
+                    return View(contract);
+                }
+
+                // Save the file
+                string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "contracts");
+                Directory.CreateDirectory(uploadsFolder);
+
+                string uniqueFileName = $"{Guid.NewGuid()}_{PdfFile.FileName}";
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await PdfFile.CopyToAsync(stream);
+                }
+
+                contract.PdfFilePath = $"/uploads/contracts/{uniqueFileName}";
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(contract);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ClientId"] = new SelectList(_context.Clients, "ClientId", "Address", contract.ClientId);
+
             return View(contract);
         }
 
         // GET: Contracts/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var contract = await _context.Contracts.FindAsync(id);
             if (contract == null)
             {
                 return NotFound();
             }
-            ViewData["ClientId"] = new SelectList(_context.Clients, "ClientId", "Address", contract.ClientId);
+            ViewBag.Clients = await _context.Clients.ToListAsync();
             return View(contract);
         }
 
         // POST: Contracts/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ContractId,ClientId,StartDate,EndDate,Status,ServiceLevel,TermsAndConditions,PdfFilePath")] Contract contract)
+        public async Task<IActionResult> Edit(int id, [Bind("ContractId,ClientId,StartDate,EndDate,Status,ServiceLevel,TermsAndConditions,PdfFilePath")] Contract contract, IFormFile? PdfFile)
         {
             if (id != contract.ContractId)
             {
                 return NotFound();
+            }
+
+            // Handle file upload if new file is provided
+            if (PdfFile != null && PdfFile.Length > 0)
+            {
+                var validation = _fileValidationService.ValidatePdfFile(PdfFile);
+                if (!validation.IsValid)
+                {
+                    ModelState.AddModelError("PdfFile", validation.ErrorMessage);
+                    ViewBag.Clients = await _context.Clients.ToListAsync();
+                    return View(contract);
+                }
+
+                // Delete old file if exists
+                if (!string.IsNullOrEmpty(contract.PdfFilePath))
+                {
+                    string oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, contract.PdfFilePath.TrimStart('/'));
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
+
+                // Save new file
+                string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "contracts");
+                Directory.CreateDirectory(uploadsFolder);
+
+                string uniqueFileName = $"{Guid.NewGuid()}_{PdfFile.FileName}";
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await PdfFile.CopyToAsync(stream);
+                }
+
+                contract.PdfFilePath = $"/uploads/contracts/{uniqueFileName}";
             }
 
             if (ModelState.IsValid)
@@ -111,49 +194,33 @@ namespace St10439541_PROG7311_P2.Controllers
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ClientId"] = new SelectList(_context.Clients, "ClientId", "Address", contract.ClientId);
+            ViewBag.Clients = await _context.Clients.ToListAsync();
             return View(contract);
         }
 
-        // GET: Contracts/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var contract = await _context.Contracts
-                .Include(c => c.Client)
-                .FirstOrDefaultAsync(m => m.ContractId == id);
-            if (contract == null)
-            {
-                return NotFound();
-            }
-
-            return View(contract);
-        }
-
-        // POST: Contracts/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        // GET: Contracts/DownloadPdf/5
+        public async Task<IActionResult> DownloadPdf(int id)
         {
             var contract = await _context.Contracts.FindAsync(id);
-            if (contract != null)
+            if (contract == null || string.IsNullOrEmpty(contract.PdfFilePath))
             {
-                _context.Contracts.Remove(contract);
+                return NotFound();
             }
 
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            string filePath = Path.Combine(_webHostEnvironment.WebRootPath, contract.PdfFilePath.TrimStart('/'));
+            if (!System.IO.File.Exists(filePath))
+            {
+                return NotFound();
+            }
+
+            byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            string fileName = Path.GetFileName(contract.PdfFilePath);
+
+            return File(fileBytes, "application/pdf", fileName);
         }
 
         private bool ContractExists(int id)

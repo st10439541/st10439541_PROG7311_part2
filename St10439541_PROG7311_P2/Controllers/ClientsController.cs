@@ -13,16 +13,22 @@ namespace St10439541_PROG7311_P2.Controllers
     public class ClientsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<ClientsController> _logger;
 
-        public ClientsController(ApplicationDbContext context)
+        public ClientsController(ApplicationDbContext context, ILogger<ClientsController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // GET: Clients
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Clients.ToListAsync());
+            // Include Contracts to display contract count or details in the view
+            var clients = await _context.Clients
+                .Include(c => c.Contracts)
+                .ToListAsync();
+            return View(clients);
         }
 
         // GET: Clients/Details/5
@@ -33,8 +39,11 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
+            // Include Contracts to show all contracts associated with this client
             var client = await _context.Clients
+                .Include(c => c.Contracts)
                 .FirstOrDefaultAsync(m => m.ClientId == id);
+
             if (client == null)
             {
                 return NotFound();
@@ -54,12 +63,13 @@ namespace St10439541_PROG7311_P2.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ClientId,Name,ContactEmail,ContactPhone,Address,Region")] Client client)
+        public async Task<IActionResult> Create([Bind("Name,ContactEmail,ContactPhone,Address,Region")] Client client)
         {
             if (ModelState.IsValid)
             {
                 _context.Add(client);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Created new client: {ClientName} (ID: {ClientId})", client.Name, client.ClientId);
                 return RedirectToAction(nameof(Index));
             }
             return View(client);
@@ -99,6 +109,7 @@ namespace St10439541_PROG7311_P2.Controllers
                 {
                     _context.Update(client);
                     await _context.SaveChangesAsync();
+                    _logger.LogInformation("Updated client: {ClientName} (ID: {ClientId})", client.Name, client.ClientId);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -125,7 +136,9 @@ namespace St10439541_PROG7311_P2.Controllers
             }
 
             var client = await _context.Clients
+                .Include(c => c.Contracts)
                 .FirstOrDefaultAsync(m => m.ClientId == id);
+
             if (client == null)
             {
                 return NotFound();
@@ -143,6 +156,7 @@ namespace St10439541_PROG7311_P2.Controllers
             if (client != null)
             {
                 _context.Clients.Remove(client);
+                _logger.LogWarning("Deleted client: {ClientName} (ID: {ClientId})", client.Name, client.ClientId);
             }
 
             await _context.SaveChangesAsync();
