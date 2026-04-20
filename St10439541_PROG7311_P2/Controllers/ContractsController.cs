@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Models;
 using St10439541_PROG7311_P2.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace St10439541_PROG7311_P2.Controllers
 {
