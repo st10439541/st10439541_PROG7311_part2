@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Services;
 
@@ -7,11 +7,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Register DbContext
+// Use SQLite instead of SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite("Data Source=TechMoveLogistics.db"));
 
-// Register custom services - THESE ARE THE IMPORTANT ONES
+// Register custom services
 builder.Services.AddScoped<IFileValidationService, FileValidationService>();
 builder.Services.AddScoped<ICurrencyExchangeService, CurrencyExchangeService>();
 
@@ -40,6 +40,13 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Ensure database is created
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.EnsureCreated();
+}
 
 // Ensure uploads directory exists
 string uploadsPath = Path.Combine(app.Environment.WebRootPath, "uploads", "contracts");
