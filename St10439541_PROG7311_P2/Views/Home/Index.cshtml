@@ -8,6 +8,13 @@
     <hr />
 </div>
 
+@if (!User.Identity.IsAuthenticated)
+{
+    <div class="alert alert-info text-center">
+        <h4>Please <a asp-controller="Account" asp-action="Login">Login</a> or <a asp-controller="Account" asp-action="Register">Register</a> to access the system features.</h4>
+    </div>
+}
+
 <div class="row mt-4">
     <div class="col-md-4 mb-3">
         <div class="card h-100 shadow-sm">
@@ -25,7 +32,14 @@
                 </ul>
             </div>
             <div class="card-footer bg-transparent">
-                <a asp-controller="Clients" asp-action="Index" class="btn btn-primary w-100">View Clients</a>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <a asp-controller="Clients" asp-action="Index" class="btn btn-primary w-100">View Clients</a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-primary w-100">Login to View</a>
+                }
             </div>
         </div>
     </div>
@@ -46,7 +60,14 @@
                 </ul>
             </div>
             <div class="card-footer bg-transparent">
-                <a asp-controller="Contracts" asp-action="Index" class="btn btn-success w-100">View Contracts</a>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <a asp-controller="Contracts" asp-action="Index" class="btn btn-success w-100">View Contracts</a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-success w-100">Login to View</a>
+                }
             </div>
         </div>
     </div>
@@ -67,66 +88,87 @@
                 </ul>
             </div>
             <div class="card-footer bg-transparent">
-                <a asp-controller="ServiceRequests" asp-action="Index" class="btn btn-info text-white w-100">View Service Requests</a>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <a asp-controller="ServiceRequests" asp-action="Index" class="btn btn-info text-white w-100">View Service Requests</a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-info text-white w-100">Login to View</a>
+                }
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">Quick Actions</h5>
+@if (User.Identity.IsAuthenticated)
+{
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-controller="Clients" asp-action="Create" class="btn btn-outline-primary">
+                                <i class="bi bi-person-plus"></i> Add New Client
+                            </a>
+                            <a asp-controller="Contracts" asp-action="Create" class="btn btn-outline-success">
+                                <i class="bi bi-file-plus"></i> Create New Contract
+                            </a>
+                        }
+                        <a asp-controller="ServiceRequests" asp-action="Create" class="btn btn-outline-info">
+                            <i class="bi bi-plus-circle"></i> Create Service Request
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a asp-controller="Clients" asp-action="Create" class="btn btn-outline-primary">
-                        <i class="bi bi-person-plus"></i> Add New Client
-                    </a>
-                    <a asp-controller="Contracts" asp-action="Create" class="btn btn-outline-success">
-                        <i class="bi bi-file-plus"></i> Create New Contract
-                    </a>
-                    <a asp-controller="ServiceRequests" asp-action="Create" class="btn btn-outline-info">
-                        <i class="bi bi-plus-circle"></i> Create Service Request
-                    </a>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">System Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td><strong>Current Date:</strong></td>
+                            <td>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Current Time:</strong></td>
+                            <td>@DateTime.Now.ToString("hh:mm tt")</td>
+                        </tr>
+                        <tr>
+                            <td><strong>System Version:</strong></td>
+                            <td>1.0.0</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Currency Support:</strong></td>
+                            <td>USD → ZAR (Real-time)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Document Support:</strong></td>
+                            <td>PDF Uploads (Max 10MB)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Logged in as:</strong></td>
+                            <td>@User.Identity.Name</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Role:</strong></td>
+                            <td>@(User.IsInRole("Admin") ? "Administrator" : "Client")</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">System Information</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-sm table-borderless">
-                    <tr>
-                        <td><strong>Current Date:</strong></td>
-                        <td>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Current Time:</strong></td>
-                        <td>@DateTime.Now.ToString("hh:mm tt")</td>
-                    </tr>
-                    <tr>
-                        <td><strong>System Version:</strong></td>
-                        <td>1.0.0</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Currency Support:</strong></td>
-                        <td>USD → ZAR (Real-time)</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Document Support:</strong></td>
-                        <td>PDF Uploads (Max 10MB)</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+}
 
 <div class="row mt-4">
     <div class="col-12">
@@ -183,11 +225,12 @@
                 <h6>2. Contract Management Module</h6>
                 <p>The Contract Management module handles all agreements between TechMove and its clients. Key features include:</p>
                 <ul>
-                    <li><strong>Contract Lifecycle</strong> - Contracts can have status: Draft, Active, Expired, or On Hold</li>
+                    <li><strong>Contract Lifecycle</strong> - Contracts can have status: Draft, PendingClientSignature, Active, Expired, or On Hold</li>
                     <li><strong>Service Levels</strong> - Three tiers available: Standard, Premium, or Enterprise</li>
                     <li><strong>Date Range</strong> - Each contract has a start date and end date defining its validity period</li>
                     <li><strong>PDF Agreement Upload</strong> - Signed contracts can be uploaded as PDF files (validated for authenticity)</li>
-                    <li><strong>Search & Filter</strong> - Administrators can filter contracts by date range and status using LINQ queries</li>
+                    <li><strong>Search & Filter</strong> - Users can filter contracts by date range and status using LINQ queries</li>
+                    <li><strong>Client Signing</strong> - Clients must sign contracts before they become active</li>
                 </ul>
                 <p>The system automatically checks if a contract is expired based on both the status and the end date. Only Active contracts allow creation of service requests.</p>
 
@@ -217,7 +260,16 @@
 
                 <hr />
 
-                <h6>5. Data Validation Rules</h6>
+                <h6>5. Role-Based Access Control</h6>
+                <ul>
+                    <li><strong>Administrator Role</strong> - Full access to create, edit, delete all clients, contracts, and service requests</li>
+                    <li><strong>Client Role</strong> - Can view their own contracts, sign pending contracts, and create service requests on active contracts</li>
+                    <li><strong>Unauthenticated Users</strong> - Can only view the home page and login/register</li>
+                </ul>
+
+                <hr />
+
+                <h6>6. Data Validation Rules</h6>
                 <ul>
                     <li><strong>File Validation</strong> - PDF files only, content verification via magic bytes (%PDF header), max 10MB size</li>
                     <li><strong>Business Validation</strong> - Service requests blocked for non-active contracts</li>
@@ -226,7 +278,7 @@
 
                 <hr />
 
-                <h6>6. External API Integration</h6>
+                <h6>7. External API Integration</h6>
                 <p>The system integrates with a free Currency Exchange API (ExchangeRate-API) to fetch real-time USD to ZAR exchange rates. Features include:</p>
                 <ul>
                     <li><strong>Async/Await</strong> - Non-blocking API calls for better performance</li>
@@ -237,7 +289,7 @@
 
                 <hr />
 
-                <h6>7. File Handling System</h6>
+                <h6>8. File Handling System</h6>
                 <p>Contract PDFs are handled as follows:</p>
                 <ul>
                     <li><strong>Upload</strong> - Files are saved to wwwroot/uploads/contracts/ with unique GUID filenames</li>
@@ -248,7 +300,7 @@
 
                 <hr />
 
-                <h6>8. Unit Testing Coverage</h6>
+                <h6>9. Unit Testing Coverage</h6>
                 <p>The solution includes comprehensive unit tests covering:</p>
                 <ul>
                     <li><strong>Currency Conversion Tests</strong> - Verifying USD to ZAR math calculations with various inputs (including zero and edge cases)</li>
@@ -257,7 +309,7 @@
                 </ul>
 
                 <div class="alert alert-success mt-3">
-                    <strong><i class="bi bi-info-circle"></i> Summary:</strong> This system provides a complete logistics management solution with client management, contract tracking, service request processing, real-time currency conversion, PDF document handling, and comprehensive business rule enforcement. All components are unit tested to ensure reliability.
+                    <strong><i class="bi bi-info-circle"></i> Summary:</strong> This system provides a complete logistics management solution with client management, contract tracking, service request processing, real-time currency conversion, PDF document handling, role-based access control, and comprehensive business rule enforcement. All components are unit tested to ensure reliability.
                 </div>
             </div>
         </div>

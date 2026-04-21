@@ -6,6 +6,7 @@ namespace St10439541_PROG7311_P2.Models
     public enum ContractStatus
     {
         Draft,
+        PendingClientSignature,  
         Active,
         Expired,
         OnHold
@@ -52,23 +53,33 @@ namespace St10439541_PROG7311_P2.Models
         [Display(Name = "Upload Signed Agreement")]
         public IFormFile? PdfFile { get; set; }
 
+        [Display(Name = "Signed By Client")]
+        public bool IsSignedByClient { get; set; } = false;
+
+        [Display(Name = "Signature Date")]
+        [DataType(DataType.DateTime)]
+        public DateTime? SignatureDate { get; set; }
+
         // Navigation properties
         [ForeignKey("ClientId")]
         public virtual Client? Client { get; set; }
 
         public virtual ICollection<ServiceRequest> ServiceRequests { get; set; } = new List<ServiceRequest>();
 
-        // Helper method to check if contract can accept service requests
         public bool CanCreateServiceRequest()
         {
-            return Status == ContractStatus.Active;
+            return Status == ContractStatus.Active && IsSignedByClient;
         }
 
-        // Helper method to check if contract is expired
+        
         public bool IsExpired()
         {
             return DateTime.Today > EndDate || Status == ContractStatus.Expired;
         }
-       
+
+        public bool CanBeSigned()
+        {
+            return Status == ContractStatus.PendingClientSignature && !IsSignedByClient;
+        }
     }
 }
