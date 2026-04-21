@@ -9,9 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Add DbContext with SQLite (no server required!)
+// Add DbContext with SQL Server (not SQLite - it's more compatible with Identity)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add Identity with User
 builder.Services.AddIdentity<User, IdentityRole>(options =>
@@ -75,17 +75,28 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        // This will create the database file if it doesn't exist
         var context = services.GetRequiredService<ApplicationDbContext>();
-        await context.Database.EnsureCreatedAsync();
 
-        // Then create roles and admin user
+        // This ensures the database is created with all tables
+        var created = context.Database.EnsureCreated();
+
+        if (created)
+        {
+            Console.WriteLine("Database created successfully!");
+        }
+        else
+        {
+            Console.WriteLine("Database already exists.");
+        }
+
+        // Create roles and admin user
         await CreateRolesAndAdminUserAsync(services);
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred while creating the database or admin user.");
+        Console.WriteLine($"Error: {ex.Message}");
     }
 }
 
@@ -109,14 +120,26 @@ async Task CreateRolesAndAdminUserAsync(IServiceProvider serviceProvider)
     string[] roles = { "Admin", "User" };
     foreach (var role in roles)
     {
-        if (!await roleManager.RoleExistsAsync(role))
+        var roleExists = await roleManager.RoleExistsAsync(role);
+        if (!roleExists)
         {
-            await roleManager.CreateAsync(new IdentityRole(role));
-            Console.WriteLine($"Created role: {role}");
+            var result = await roleManager.CreateAsync(new IdentityRole(role));
+            if (result.Succeeded)
+            {
+                Console.WriteLine($"Created role: {role}");
+            }
+            else
+            {
+                Console.WriteLine($"Failed to create role {role}: {string.Join(", ", result.Errors)}");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Role already exists: {role}");
         }
     }
 
-    // admin account
+    // Create admin user if not exists
     var adminEmail = "admin@techmove.com";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
 
@@ -159,10 +182,15 @@ async Task CreateRolesAndAdminUserAsync(IServiceProvider serviceProvider)
         }
         else
         {
+            Console.WriteLine("Failed to create admin user:");
             foreach (var error in result.Errors)
             {
-                Console.WriteLine($"Error creating admin: {error.Description}");
+                Console.WriteLine($"  - {error.Description}");
             }
         }
+    }
+    else
+    {
+        Console.WriteLine("Admin user already exists");
     }
 }

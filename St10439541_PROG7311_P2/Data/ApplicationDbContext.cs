@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using St10439541_PROG7311_P2.Models;
 
@@ -38,9 +39,6 @@ namespace St10439541_PROG7311_P2.Data
                 .WithMany()
                 .HasForeignKey(u => u.ClientId)
                 .OnDelete(DeleteBehavior.SetNull);
-
-            // Seed admin user
-            // Admin will be created via migration or manually
         }
     }
 }
