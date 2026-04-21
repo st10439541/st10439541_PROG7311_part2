@@ -10,11 +10,27 @@
     <a asp-action="Create" class="btn btn-primary">Create New Service Request</a>
 </p>
 
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <table class="table table-striped">
     <thead>
         <tr>
             <th>Client</th>
-            <th>Contract</th>
+            <th>Contract ID</th>
             <th>Description</th>
             <th>Amount (USD)</th>
             <th>Amount (ZAR)</th>
@@ -30,8 +46,8 @@
                 <td>@item.Contract?.Client?.Name</td>
                 <td>@item.ContractId</td>
                 <td>@item.Description</td>
-                <td>$@item.AmountUSD.ToString("F2")</td>
-                <td>R@item.AmountZAR.ToString("F2")</td>
+                <td>$@item.AmountUSD.ToString("N2")</td>
+                <td>R@item.AmountZAR.ToString("N2")</td>
                 <td>
                     <span class="badge bg-@(item.Status.ToString() switch {
                         "Pending" => "warning",
@@ -42,14 +58,38 @@
                     })">
                         @item.Status
                     </span>
-                </td>
+                 </td>
                 <td>@item.CreatedAt.ToShortDateString()</td>
                 <td>
-                    <a asp-action="Details" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-info">Details</a>
-                    <a asp-action="Edit" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-warning">Edit</a>
-                    <a asp-action="Delete" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-danger">Delete</a>
-                </td>
-            </tr>
+                    <div class="btn-group" role="group">
+                        <a asp-action="Details" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-info">Details</a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-action="Edit" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-warning">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-danger">Delete</a>
+                        }
+                    </div>
+                 </td>
+             </tr>
         }
     </tbody>
 </table>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle"></i> No service requests found.
+        <a asp-action="Create">Click here to create your first service request.</a>
+    </div>
+}
+
+@section Scripts {
+    <style>
+        .btn-group {
+            gap: 5px;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+    </style>
+}

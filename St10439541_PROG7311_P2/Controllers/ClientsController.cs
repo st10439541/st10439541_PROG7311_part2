@@ -5,11 +5,13 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Models;
 
 namespace St10439541_PROG7311_P2.Controllers
 {
+    [Authorize(Roles = "Admin")] // This ensures ONLY Admin can access ANY action in this controller
     public class ClientsController : Controller
     {
         private readonly ApplicationDbContext _context;

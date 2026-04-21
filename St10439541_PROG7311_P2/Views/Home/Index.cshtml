@@ -13,36 +13,69 @@
     <div class="alert alert-info text-center">
         <h4>Please <a asp-controller="Account" asp-action="Login">Login</a> or <a asp-controller="Account" asp-action="Register">Register</a> to access the system features.</h4>
     </div>
-}
 
-<div class="row mt-4">
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-people"></i> Clients
-                </h5>
+    <!-- Demo Credentials Section - Two Columns -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <strong>Admin Account</strong>
+                </div>
+                <div class="card-body">
+                    <p><strong>Email:</strong> admin@techmove.com</p>
+                    <p><strong>Password:</strong> Admin@123</p>
+                    <p><strong>Role:</strong> Administrator</p>
+                </div>
             </div>
-            <div class="card-body">
-                <p class="card-text">Manage your clients, including their contact details, addresses, and regional information.</p>
-                <ul class="list-unstyled">
-                    <li><i class="bi bi-check-circle-fill text-success"></i> Add new clients</li>
-                    <li><i class="bi bi-check-circle-fill text-success"></i> Update client information</li>
-                    <li><i class="bi bi-check-circle-fill text-success"></i> View client contracts</li>
-                </ul>
-            </div>
-            <div class="card-footer bg-transparent">
-                @if (User.Identity.IsAuthenticated)
-                {
-                    <a asp-controller="Clients" asp-action="Index" class="btn btn-primary w-100">View Clients</a>
-                }
-                else
-                {
-                    <a asp-controller="Account" asp-action="Login" class="btn btn-primary w-100">Login to View</a>
-                }
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <strong>Client Account</strong>
+                </div>
+                <div class="card-body">
+                    <p><strong>Email:</strong> example@gmail.com</p>
+                    <p><strong>Password:</strong> 123456</p>
+                    <p><strong>Role:</strong> Client</p>
+                </div>
             </div>
         </div>
     </div>
+}
+
+<!-- Three Feature Cards - Always Visible -->
+<div class="row mt-4">
+    <!-- Only show Clients card for Admin users when logged in, but show for everyone when not logged in -->
+    @if (!User.Identity.IsAuthenticated || User.IsInRole("Admin"))
+    {
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people"></i> Clients
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Manage your clients, including their contact details, addresses, and regional information.</p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle-fill text-success"></i> Add new clients</li>
+                        <li><i class="bi bi-check-circle-fill text-success"></i> Update client information</li>
+                        <li><i class="bi bi-check-circle-fill text-success"></i> View client contracts</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent">
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <a asp-controller="Clients" asp-action="Index" class="btn btn-primary w-100">View Clients</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary w-100">Login to View</a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
 
     <div class="col-md-4 mb-3">
         <div class="card h-100 shadow-sm">
@@ -52,10 +85,18 @@
                 </h5>
             </div>
             <div class="card-body">
-                <p class="card-text">Create and manage client contracts with PDF agreement uploads and status tracking.</p>
+                <p class="card-text">View and manage contracts. Clients can sign pending contracts to activate them.</p>
                 <ul class="list-unstyled">
-                    <li><i class="bi bi-check-circle-fill text-success"></i> Create new contracts</li>
-                    <li><i class="bi bi-check-circle-fill text-success"></i> Upload signed PDF agreements</li>
+                    <li><i class="bi bi-check-circle-fill text-success"></i> View all contracts</li>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <li><i class="bi bi-check-circle-fill text-success"></i> Create new contracts</li>
+                        <li><i class="bi bi-check-circle-fill text-success"></i> Upload PDF agreements</li>
+                    }
+                    else
+                    {
+                        <li><i class="bi bi-check-circle-fill text-success"></i> Sign pending contracts</li>
+                    }
                     <li><i class="bi bi-check-circle-fill text-success"></i> Filter by date and status</li>
                 </ul>
             </div>
@@ -170,6 +211,7 @@
     </div>
 }
 
+<!-- Business Rules Section -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow-sm">
@@ -180,19 +222,19 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="alert alert-info">
-                            <strong><i class="bi bi-shield-check"></i> Rule 1: Contract Status Validation</strong>
+                            <strong>Rule 1: Contract Status Validation</strong>
                             <p class="mb-0 small">Service requests can ONLY be created for contracts with status "Active". Contracts that are "Expired", "Draft", or "On Hold" cannot have service requests created against them.</p>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="alert alert-info">
-                            <strong><i class="bi bi-currency-exchange"></i> Rule 2: Currency Conversion</strong>
+                            <strong>Rule 2: Currency Conversion</strong>
                             <p class="mb-0 small">When creating a service request, the USD amount entered is automatically converted to ZAR using real-time exchange rates from a free external API (ExchangeRate-API). The exchange rate used is saved with each service request for audit purposes.</p>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="alert alert-info">
-                            <strong><i class="bi bi-file-pdf"></i> Rule 3: Document Upload Validation</strong>
+                            <strong>Rule 3: Document Upload Validation</strong>
                             <p class="mb-0 small">Only PDF files are accepted for contract agreements. The system validates both the file extension (.pdf) AND the actual file content (PDF magic bytes) to ensure it's a genuine PDF. Maximum file size is 10MB.</p>
                         </div>
                     </div>
@@ -309,7 +351,7 @@
                 </ul>
 
                 <div class="alert alert-success mt-3">
-                    <strong><i class="bi bi-info-circle"></i> Summary:</strong> This system provides a complete logistics management solution with client management, contract tracking, service request processing, real-time currency conversion, PDF document handling, role-based access control, and comprehensive business rule enforcement. All components are unit tested to ensure reliability.
+                    <strong>Summary:</strong> This system provides a complete logistics management solution with client management, contract tracking, service request processing, real-time currency conversion, PDF document handling, role-based access control, and comprehensive business rule enforcement. All components are unit tested to ensure reliability.
                 </div>
             </div>
         </div>
