@@ -10,48 +10,49 @@
     <hr />
     <dl class="row">
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.Client)
+            Client
         </dt>
         <dd class="col-sm-9">
             @Model.Client?.Name
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.StartDate)
+            Start Date
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.StartDate)
+            @Model.StartDate.ToString("dd/MM/yyyy")
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.EndDate)
+            End Date
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.EndDate)
+            @Model.EndDate.ToString("dd/MM/yyyy")
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.Status)
+            Status
         </dt>
         <dd class="col-sm-9">
             <span class="badge bg-@(Model.Status.ToString() switch {
                 "Active" => "success",
-                "Draft" => "warning",
+                "Draft" => "secondary",
                 "Expired" => "danger",
-                "OnHold" => "secondary",
-                _ => "info"
+                "OnHold" => "warning",
+                "PendingClientSignature" => "info",
+                _ => "light"
             })">
-                @Model.Status
+                @(Model.Status == ContractStatus.PendingClientSignature ? "Pending Signature" : Model.Status.ToString())
             </span>
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.ServiceLevel)
+            Service Level
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.ServiceLevel)
+            @Model.ServiceLevel
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.TermsAndConditions)
+            Terms & Conditions
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.TermsAndConditions)
+            @(string.IsNullOrEmpty(Model.TermsAndConditions) ? "No terms specified" : Model.TermsAndConditions)
         </dd>
         <dt class="col-sm-3">
             Signed Agreement
@@ -72,7 +73,7 @@
 <h3>Service Requests</h3>
 @if (Model.ServiceRequests != null && Model.ServiceRequests.Any())
 {
-    <table class="table table-sm">
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th>Request ID</th>
@@ -89,10 +90,20 @@
                 <tr>
                     <td>@request.ServiceRequestId</td>
                     <td>@request.Description</td>
-                    <td>$@request.AmountUSD.ToString("F2")</td>
-                    <td>R@request.AmountZAR.ToString("F2")</td>
-                    <td>@request.Status</td>
-                    <td>@request.CreatedAt.ToShortDateString()</td>
+                    <td>$@(request.AmountUSD.ToString("N2"))</td>
+                    <td>R@(request.AmountZAR.ToString("N2"))</td>
+                    <td>
+                        <span class="badge bg-@(request.Status.ToString() switch {
+                            "Pending" => "warning",
+                            "InProgress" => "info",
+                            "Completed" => "success",
+                            "Cancelled" => "danger",
+                            _ => "secondary"
+                        })">
+                            @request.Status
+                        </span>
+                     </td>
+                    <td>@request.CreatedAt.ToString("dd/MM/yyyy")</td>
                 </tr>
             }
         </tbody>
@@ -104,6 +115,9 @@ else
 }
 
 <div>
-    <a asp-action="Edit" asp-route-id="@Model.ContractId" class="btn btn-warning">Edit</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.ContractId" class="btn btn-warning">Edit</a>
+    }
     <a asp-action="Index" class="btn btn-secondary">Back to List</a>
 </div>

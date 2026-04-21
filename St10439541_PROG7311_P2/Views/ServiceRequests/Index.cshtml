@@ -43,34 +43,39 @@
         @foreach (var item in Model)
         {
             <tr>
-                <td>@item.Contract?.Client?.Name</td>
+                <td>@(item.Contract?.Client?.Name ?? "N/A")</td>
                 <td>@item.ContractId</td>
                 <td>@item.Description</td>
-                <td>$@item.AmountUSD.ToString("N2")</td>
-                <td>R@item.AmountZAR.ToString("N2")</td>
+                <td>@String.Format("{0:C}", item.AmountUSD)</td>
+                <td>@String.Format("{0:C}", item.AmountZAR).Replace("$", "R")</td>
                 <td>
-                    <span class="badge bg-@(item.Status.ToString() switch {
-                        "Pending" => "warning",
-                        "InProgress" => "info",
-                        "Completed" => "success",
-                        "Cancelled" => "danger",
-                        _ => "secondary"
-                    })">
-                        @item.Status
-                    </span>
-                 </td>
-                <td>@item.CreatedAt.ToShortDateString()</td>
+                    @if (item.Status == RequestStatus.Pending)
+                    {
+                        <span class="badge bg-warning">Pending</span>
+                    }
+                    else if (item.Status == RequestStatus.InProgress)
+                    {
+                        <span class="badge bg-info">In Progress</span>
+                    }
+                    else if (item.Status == RequestStatus.Completed)
+                    {
+                        <span class="badge bg-success">Completed</span>
+                    }
+                    else if (item.Status == RequestStatus.Cancelled)
+                    {
+                        <span class="badge bg-danger">Cancelled</span>
+                    }
+                </td>
+                <td>@item.CreatedAt.ToString("dd/MM/yyyy")</td>
                 <td>
-                    <div class="btn-group" role="group">
-                        <a asp-action="Details" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-info">Details</a>
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <a asp-action="Edit" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-warning">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-danger">Delete</a>
-                        }
-                    </div>
-                 </td>
-             </tr>
+                    <a asp-action="Details" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-info">Details</a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-action="Edit" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-warning">Edit</a>
+                        <a asp-action="Delete" asp-route-id="@item.ServiceRequestId" class="btn btn-sm btn-danger">Delete</a>
+                    }
+                </td>
+            </tr>
         }
     </tbody>
 </table>
@@ -78,18 +83,6 @@
 @if (!Model.Any())
 {
     <div class="alert alert-info text-center">
-        <i class="bi bi-info-circle"></i> No service requests found.
-        <a asp-action="Create">Click here to create your first service request.</a>
+        No service requests found. <a asp-action="Create">Create one here</a>
     </div>
-}
-
-@section Scripts {
-    <style>
-        .btn-group {
-            gap: 5px;
-        }
-        .table td {
-            vertical-align: middle;
-        }
-    </style>
 }

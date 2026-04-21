@@ -13,7 +13,7 @@
             Client
         </dt>
         <dd class="col-sm-9">
-            @Model.Contract?.Client?.Name
+            @(Model.Contract?.Client?.Name ?? "N/A")
         </dd>
         <dt class="col-sm-3">
             Contract ID
@@ -22,31 +22,31 @@
             @Model.ContractId
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.Description)
+            Service Description
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.Description)
+            @Model.Description
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.AmountUSD)
+            Amount (USD)
         </dt>
         <dd class="col-sm-9">
-            $@Model.AmountUSD.ToString("F2")
+            $@Model.AmountUSD.ToString("0.00")
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.AmountZAR)
+            Amount (ZAR)
         </dt>
         <dd class="col-sm-9">
-            R@Model.AmountZAR.ToString("F2")
+            R@(Model.AmountZAR.ToString("0.00"))
         </dd>
         <dt class="col-sm-3">
             Exchange Rate Used
         </dt>
         <dd class="col-sm-9">
-            @Model.ExchangeRateUsed.ToString("F4") ZAR per USD
+            @Model.ExchangeRateUsed.ToString("0.0000") ZAR per USD
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.Status)
+            Status
         </dt>
         <dd class="col-sm-9">
             <span class="badge bg-@(Model.Status.ToString() switch {
@@ -60,15 +60,18 @@
             </span>
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.CreatedAt)
+            Created At
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.CreatedAt)
+            @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")
         </dd>
     </dl>
 </div>
 
 <div>
-    <a asp-action="Edit" asp-route-id="@Model.ServiceRequestId" class="btn btn-warning">Edit</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.ServiceRequestId" class="btn btn-warning">Edit</a>
+    }
     <a asp-action="Index" class="btn btn-secondary">Back to List</a>
 </div>
