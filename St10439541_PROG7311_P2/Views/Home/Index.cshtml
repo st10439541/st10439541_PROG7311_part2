@@ -249,23 +249,22 @@
     <div class="col-12">
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">System Functionality & Architecture Explanation</h5>
+                <h5 class="mb-0">System Functionality Explanation</h5>
             </div>
             <div class="card-body">
-                <h6>1. Client Management Module</h6>
-                <p>The Client Management module allows administrators to maintain a database of all clients. Each client record stores:</p>
+                <h6>
+                    <b>1. Client Management Module</b></h6>
                 <ul>
                     <li><strong>Company Name</strong> - The client's business name</li>
                     <li><strong>Contact Information</strong> - Email address and phone number for primary contact</li>
                     <li><strong>Address</strong> - Physical location of the client</li>
                     <li><strong>Region</strong> - Geographic region for reporting purposes</li>
                 </ul>
-                <p>Clients serve as the parent entity for all contracts and service requests in the system. When a client is deleted, all associated contracts and service requests are also removed (cascade delete).</p>
+                
 
                 <hr />
 
-                <h6>2. Contract Management Module</h6>
-                <p>The Contract Management module handles all agreements between TechMove and its clients. Key features include:</p>
+                <h6><b>2. Contract Management Module</b></h6>
                 <ul>
                     <li><strong>Contract Lifecycle</strong> - Contracts can have status: Draft, PendingClientSignature, Active, Expired, or On Hold</li>
                     <li><strong>Service Levels</strong> - Three tiers available: Standard, Premium, or Enterprise</li>
@@ -274,35 +273,22 @@
                     <li><strong>Search & Filter</strong> - Users can filter contracts by date range and status using LINQ queries</li>
                     <li><strong>Client Signing</strong> - Clients must sign contracts before they become active</li>
                 </ul>
-                <p>The system automatically checks if a contract is expired based on both the status and the end date. Only Active contracts allow creation of service requests.</p>
+                
 
                 <hr />
 
-                <h6>3. Service Request Module</h6>
-                <p>The Service Request module manages operational requests from clients. Important aspects include:</p>
+                <h6><b>3. Service Request Module</b></h6>
                 <ul>
                     <li><strong>Workflow Validation</strong> - Before creating a request, the system verifies the parent contract is Active (not Expired or On Hold)</li>
                     <li><strong>Currency Conversion</strong> - Real-time USD to ZAR conversion using external ExchangeRate-API</li>
                     <li><strong>Request Status</strong> - Requests can be Pending, In Progress, Completed, or Cancelled</li>
                     <li><strong>Audit Trail</strong> - The exchange rate used for conversion is stored with each request</li>
                 </ul>
-                <p>The currency conversion uses an external API call via HttpClient. The rate is cached for 60 minutes to reduce API calls and improve performance.</p>
+                
 
                 <hr />
 
-                <h6>4. Technical Architecture</h6>
-                <p>The system is built using the following technologies and patterns:</p>
-                <ul>
-                    <li><strong>ASP.NET Core MVC</strong> - Model-View-Controller architecture for clean separation of concerns</li>
-                    <li><strong>Entity Framework Core</strong> - ORM for database operations with SQL Server</li>
-                    <li><strong>Dependency Injection</strong> - Services are registered in Program.cs and injected into controllers</li>
-                    <li><strong>Repository Pattern</strong> - Database operations are handled through DbContext</li>
-                    <li><strong>Unit Testing</strong> - xUnit tests for business logic validation (currency calculation, file validation, workflow rules)</li>
-                </ul>
-
-                <hr />
-
-                <h6>5. Role-Based Access Control</h6>
+                <h6><b>4. Role-Based Access Control (Admin and Client)</b></h6>
                 <ul>
                     <li><strong>Administrator Role</strong> - Full access to create, edit, delete all clients, contracts, and service requests</li>
                     <li><strong>Client Role</strong> - Can view their own contracts, sign pending contracts, and create service requests on active contracts</li>
@@ -311,48 +297,42 @@
 
                 <hr />
 
-                <h6>6. Data Validation Rules</h6>
+                <h6><b>5. Data Validation Rules</b></h6>
                 <ul>
                     <li><strong>File Validation</strong> - PDF files only, content verification via magic bytes (%PDF header), max 10MB size</li>
-                    <li><strong>Business Validation</strong> - Service requests blocked for non-active contracts</li>
+                    <li><strong>Business Validation</strong> - Service requests blocked only for non-active contracts</li>
                     <li><strong>Data Annotations</strong> - Required fields, string lengths, email format, phone numbers, and date ranges</li>
                 </ul>
 
                 <hr />
 
-                <h6>7. External API Integration</h6>
-                <p>The system integrates with a free Currency Exchange API (ExchangeRate-API) to fetch real-time USD to ZAR exchange rates. Features include:</p>
+                <h6><b>6. External API Integration</b></h6>
                 <ul>
                     <li><strong>Async/Await</strong> - Non-blocking API calls for better performance</li>
                     <li><strong>Caching</strong> - Exchange rates are cached in memory for 60 minutes to reduce external API calls</li>
-                    <li><strong>Fallback Rate</strong> - If the API fails, a default rate (19.50 ZAR/USD) is used to prevent system failure</li>
-                    <li><strong>AJAX Support</strong> - The Create Service Request page fetches the latest rate dynamically without page refresh</li>
+                    <li><strong>Fallback Rate</strong> - If the API fails, a default rate (19.50 ZAR/USD) is used to prevent any errors which would result in system failure/crash</li>
+                    <li><strong>AJAX Support</strong> - The Create Service Request page fetches the latest rate without refreshing the page</li>
                 </ul>
 
                 <hr />
 
-                <h6>8. File Handling System</h6>
-                <p>Contract PDFs are handled as follows:</p>
+                <h6><b>7. File Handling System</b></h6>
                 <ul>
                     <li><strong>Upload</strong> - Files are saved to wwwroot/uploads/contracts/ with unique GUID filenames</li>
                     <li><strong>Download</strong> - Files can be downloaded via the DownloadPdf action method</li>
-                    <li><strong>Validation</strong> - Both extension and content validation ensure only real PDFs are stored</li>
-                    <li><strong>Storage Path</strong> - The file path is stored in the database for retrieval</li>
+                    <li><strong>Validation</strong> - Realand only Pdf's can be stored by using both extension and content validation </li>
+                    <li><strong>Storage</strong> - The file path is stored in the database for retrieval</li>
                 </ul>
 
                 <hr />
 
-                <h6>9. Unit Testing Coverage</h6>
+                <h6><b>8. Unit Testing Coverage</b></h6>
                 <p>The solution includes comprehensive unit tests covering:</p>
                 <ul>
                     <li><strong>Currency Conversion Tests</strong> - Verifying USD to ZAR math calculations with various inputs (including zero and edge cases)</li>
                     <li><strong>File Validation Tests</strong> - Testing PDF validation (valid PDFs, EXE files, TXT files, empty files, large files, fake PDFs)</li>
                     <li><strong>Contract Workflow Tests</strong> - Testing business rules (service request creation only for Active contracts, expired detection)</li>
                 </ul>
-
-                <div class="alert alert-success mt-3">
-                    <strong>Summary:</strong> This system provides a complete logistics management solution with client management, contract tracking, service request processing, real-time currency conversion, PDF document handling, role-based access control, and comprehensive business rule enforcement. All components are unit tested to ensure reliability.
-                </div>
             </div>
         </div>
     </div>

@@ -17,31 +17,46 @@
             Client
         </dt>
         <dd class="col-sm-9">
-            @Model.Contract?.Client?.Name
+            @(Model.Contract?.Client?.Name ?? "N/A")
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.Description)
+            Service Description
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.Description)
+            @Model.Description
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.AmountUSD)
+            Amount (USD)
         </dt>
         <dd class="col-sm-9">
-            $@Model.AmountUSD.ToString("F2")
+            $@(Model.AmountUSD.ToString("N2"))
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.AmountZAR)
+            Amount (ZAR)
         </dt>
         <dd class="col-sm-9">
-            R@Model.AmountZAR.ToString("F2")
+            R@(Model.AmountZAR.ToString("N2"))
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.Status)
+            Status
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.Status)
+            @if (Model.Status == RequestStatus.Pending)
+            {
+                <span class="badge bg-warning">Pending</span>
+            }
+            else if (Model.Status == RequestStatus.Accepted)
+            {
+                <span class="badge bg-success">Accepted</span>
+            }
+            else if (Model.Status == RequestStatus.Denied)
+            {
+                <span class="badge bg-danger">Denied</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">@Model.Status</span>
+            }
         </dd>
     </dl>
 
