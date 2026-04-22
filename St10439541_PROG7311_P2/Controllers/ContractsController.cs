@@ -6,9 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Models;
 using St10439541_PROG7311_P2.Services;
+using St10439541_PROG7311_P2.Services.Observers;
 
 namespace St10439541_PROG7311_P2.Controllers
 {
@@ -19,22 +21,25 @@ namespace St10439541_PROG7311_P2.Controllers
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly ILogger<ContractsController> _logger;
         private readonly IUserAuthorizationService _userAuthService;
+        private readonly ObserverManager _observerManager;  // ADD THIS
 
         public ContractsController(
             ApplicationDbContext context,
             IFileValidationService fileValidationService,
             IWebHostEnvironment webHostEnvironment,
             ILogger<ContractsController> logger,
-            IUserAuthorizationService userAuthService)
+            IUserAuthorizationService userAuthService,
+            ObserverManager observerManager)  // ADD THIS PARAMETER
         {
             _context = context;
             _fileValidationService = fileValidationService;
             _webHostEnvironment = webHostEnvironment;
             _logger = logger;
             _userAuthService = userAuthService;
+            _observerManager = observerManager;  // ADD THIS
         }
 
-        // GET: Contracts (Both Admin and Client can view, but filtered)
+        // GET: Contracts
         [Authorize]
         public async Task<IActionResult> Index(DateTime? startDate, DateTime? endDate, ContractStatus? status)
         {
@@ -42,7 +47,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 .Include(c => c.Client)
                 .AsQueryable();
 
-            // If not admin, only show contracts for their client
             if (!User.IsInRole("Admin"))
             {
                 var clientId = await _userAuthService.GetCurrentUserClientId();
@@ -52,7 +56,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 }
             }
 
-            // Apply filters using LINQ
             if (startDate.HasValue)
             {
                 query = query.Where(c => c.StartDate >= startDate.Value);
@@ -70,7 +73,6 @@ namespace St10439541_PROG7311_P2.Controllers
 
             var contracts = await query.ToListAsync();
 
-            // Store filter values for the view
             ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
             ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
             ViewBag.SelectedStatus = status;
@@ -97,7 +99,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Check if user has access to this contract
             if (!User.IsInRole("Admin"))
             {
                 var clientId = await _userAuthService.GetCurrentUserClientId();
@@ -114,7 +115,6 @@ namespace St10439541_PROG7311_P2.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create()
         {
-            // Get all clients for the dropdown
             var clients = await _context.Clients.ToListAsync();
             ViewBag.Clients = new SelectList(clients, "ClientId", "Name");
             return View();
@@ -126,11 +126,9 @@ namespace St10439541_PROG7311_P2.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("ClientId,StartDate,EndDate,Status,ServiceLevel,TermsAndConditions")] Contract contract, IFormFile? PdfFile)
         {
-            // Repopulate ViewBag.Clients in case of error
             var clients = await _context.Clients.ToListAsync();
             ViewBag.Clients = new SelectList(clients, "ClientId", "Name", contract.ClientId);
 
-            // Handle the status based on what admin selected
             if (contract.Status == ContractStatus.Active)
             {
                 contract.IsSignedByClient = true;
@@ -148,13 +146,11 @@ namespace St10439541_PROG7311_P2.Controllers
             }
             else
             {
-                // Default if no status selected
                 contract.Status = ContractStatus.PendingClientSignature;
                 contract.IsSignedByClient = false;
                 contract.SignatureDate = null;
             }
 
-            // Handle file upload (PDF from admin - contract document)
             if (PdfFile != null && PdfFile.Length > 0)
             {
                 var validation = _fileValidationService.ValidatePdfFile(PdfFile);
@@ -164,7 +160,6 @@ namespace St10439541_PROG7311_P2.Controllers
                     return View(contract);
                 }
 
-                // Save the file
                 string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "contracts");
                 Directory.CreateDirectory(uploadsFolder);
 
@@ -184,6 +179,9 @@ namespace St10439541_PROG7311_P2.Controllers
                 _context.Add(contract);
                 await _context.SaveChangesAsync();
 
+                // NOTIFY OBSERVERS - ADD THIS
+                await _observerManager.OnContractCreated(contract);
+
                 string statusMessage = contract.Status == ContractStatus.PendingClientSignature ? "Waiting for client signature." : $"Status: {contract.Status}";
                 _logger.LogInformation("Created new contract (ID: {ContractId}) for Client {ClientId} - Status: {Status}", contract.ContractId, contract.ClientId, contract.Status);
                 TempData["SuccessMessage"] = $"Contract created successfully! {statusMessage}";
@@ -193,7 +191,7 @@ namespace St10439541_PROG7311_P2.Controllers
             return View(contract);
         }
 
-        // GET: Contracts/Sign/5 - Client signs the contract
+        // GET: Contracts/Sign/5
         [Authorize(Roles = "User")]
         public async Task<IActionResult> Sign(int? id)
         {
@@ -211,14 +209,12 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Check if this contract belongs to the logged-in client
             var clientId = await _userAuthService.GetCurrentUserClientId();
             if (!clientId.HasValue || contract.ClientId != clientId.Value)
             {
                 return RedirectToAction("AccessDenied", "Account");
             }
 
-            // Check if contract can be signed
             if (!contract.CanBeSigned())
             {
                 TempData["ErrorMessage"] = "This contract cannot be signed. It may already be signed or not in pending status.";
@@ -228,7 +224,7 @@ namespace St10439541_PROG7311_P2.Controllers
             return View(contract);
         }
 
-        // POST: Contracts/Sign/5 - Client confirms signature
+        // POST: Contracts/Sign/5
         [HttpPost]
         [Authorize(Roles = "User")]
         [ValidateAntiForgeryToken]
@@ -241,7 +237,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Verify ownership
             var clientId = await _userAuthService.GetCurrentUserClientId();
             if (!clientId.HasValue || contract.ClientId != clientId.Value)
             {
@@ -254,7 +249,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Handle signed PDF upload from client
             if (SignedPdfFile != null && SignedPdfFile.Length > 0)
             {
                 var validation = _fileValidationService.ValidatePdfFile(SignedPdfFile);
@@ -264,7 +258,6 @@ namespace St10439541_PROG7311_P2.Controllers
                     return View(contract);
                 }
 
-                // Save the signed PDF
                 string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "contracts");
                 Directory.CreateDirectory(uploadsFolder);
 
@@ -276,13 +269,18 @@ namespace St10439541_PROG7311_P2.Controllers
                     await SignedPdfFile.CopyToAsync(stream);
                 }
 
-                // Update contract with signed PDF and change status to Active
+                var oldStatus = contract.Status;  // ADD THIS - store old status for observer
+
                 contract.PdfFilePath = $"/uploads/contracts/{uniqueFileName}";
                 contract.IsSignedByClient = true;
                 contract.SignatureDate = DateTime.Now;
                 contract.Status = ContractStatus.Active;
 
                 await _context.SaveChangesAsync();
+
+                // NOTIFY OBSERVERS - ADD THIS
+                await _observerManager.OnContractSigned(contract);
+                await _observerManager.OnContractStatusChanged(contract, oldStatus, contract.Status);
 
                 _logger.LogInformation("Contract {ContractId} was signed by client {ClientId}", contract.ContractId, contract.ClientId);
                 TempData["SuccessMessage"] = "Contract signed successfully! It is now active.";
@@ -296,7 +294,7 @@ namespace St10439541_PROG7311_P2.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: Contracts/Edit/5 - Admin Only
+        // GET: Contracts/Edit/5
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
@@ -311,14 +309,13 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Get all clients for the dropdown
             var clients = await _context.Clients.ToListAsync();
             ViewBag.Clients = new SelectList(clients, "ClientId", "Name", contract.ClientId);
 
             return View(contract);
         }
 
-        // POST: Contracts/Edit/5 - Admin Only
+        // POST: Contracts/Edit/5
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
@@ -329,11 +326,13 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Repopulate ViewBag.Clients in case of error
             var clients = await _context.Clients.ToListAsync();
             ViewBag.Clients = new SelectList(clients, "ClientId", "Name", contract.ClientId);
 
-            // Handle file upload if new file is provided
+            // Get old status for observer notification
+            var existingContract = await _context.Contracts.AsNoTracking().FirstOrDefaultAsync(c => c.ContractId == id);
+            var oldStatus = existingContract?.Status;
+
             if (PdfFile != null && PdfFile.Length > 0)
             {
                 var validation = _fileValidationService.ValidatePdfFile(PdfFile);
@@ -343,7 +342,6 @@ namespace St10439541_PROG7311_P2.Controllers
                     return View(contract);
                 }
 
-                // Delete old file if exists
                 if (!string.IsNullOrEmpty(contract.PdfFilePath))
                 {
                     string oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, contract.PdfFilePath.TrimStart('/'));
@@ -353,7 +351,6 @@ namespace St10439541_PROG7311_P2.Controllers
                     }
                 }
 
-                // Save new file
                 string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "contracts");
                 Directory.CreateDirectory(uploadsFolder);
 
@@ -374,6 +371,13 @@ namespace St10439541_PROG7311_P2.Controllers
                 {
                     _context.Update(contract);
                     await _context.SaveChangesAsync();
+
+                    // NOTIFY OBSERVERS - ADD THIS
+                    if (oldStatus.HasValue && oldStatus.Value != contract.Status)
+                    {
+                        await _observerManager.OnContractStatusChanged(contract, oldStatus.Value, contract.Status);
+                    }
+
                     _logger.LogInformation("Updated contract (ID: {ContractId})", contract.ContractId);
                     TempData["SuccessMessage"] = "Contract updated successfully!";
                 }
@@ -390,7 +394,7 @@ namespace St10439541_PROG7311_P2.Controllers
             return View(contract);
         }
 
-        // GET: Contracts/Delete/5 - Admin Only
+        // GET: Contracts/Delete/5
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
@@ -411,7 +415,7 @@ namespace St10439541_PROG7311_P2.Controllers
             return View(contract);
         }
 
-        // POST: Contracts/Delete/5 - Admin Only
+        // POST: Contracts/Delete/5
         [HttpPost, ActionName("Delete")]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
@@ -420,7 +424,6 @@ namespace St10439541_PROG7311_P2.Controllers
             var contract = await _context.Contracts.FindAsync(id);
             if (contract != null)
             {
-                // Delete the PDF file if it exists
                 if (!string.IsNullOrEmpty(contract.PdfFilePath))
                 {
                     string filePath = Path.Combine(_webHostEnvironment.WebRootPath, contract.PdfFilePath.TrimStart('/'));
@@ -450,7 +453,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Check access - only admin or the client who owns the contract can download
             if (!User.IsInRole("Admin"))
             {
                 var clientId = await _userAuthService.GetCurrentUserClientId();

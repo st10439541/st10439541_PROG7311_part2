@@ -3,13 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Models;
 using St10439541_PROG7311_P2.Services;
+using St10439541_PROG7311_P2.Services.Observers;  
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Add DbContext with SQL Server (not SQLite - it's more compatible with Identity)
+// Add DbContext with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -48,6 +49,15 @@ builder.Services.AddHttpClient<CurrencyExchangeService>();
 // Add caching for exchange rates
 builder.Services.AddMemoryCache();
 
+
+// OBSERVER PATTERN 
+
+builder.Services.AddScoped<IContractObserver, LoggingObserver>();
+builder.Services.AddScoped<IServiceRequestObserver, LoggingObserver>();
+builder.Services.AddScoped<IClientObserver, LoggingObserver>();
+builder.Services.AddScoped<ObserverManager>();
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -77,7 +87,6 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
 
-        // This ensures the database is created with all tables
         var created = context.Database.EnsureCreated();
 
         if (created)
@@ -89,7 +98,6 @@ using (var scope = app.Services.CreateScope())
             Console.WriteLine("Database already exists.");
         }
 
-        // Create roles and admin user
         await CreateRolesAndAdminUserAsync(services);
     }
     catch (Exception ex)
@@ -162,7 +170,6 @@ async Task CreateRolesAndAdminUserAsync(IServiceProvider serviceProvider)
             await userManager.AddToRoleAsync(admin, "Admin");
             Console.WriteLine("Created admin user");
 
-            // Create a client record for admin
             var client = new Client
             {
                 Name = "TechMove Logistics",

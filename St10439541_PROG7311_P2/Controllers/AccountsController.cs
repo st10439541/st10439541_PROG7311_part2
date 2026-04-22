@@ -129,16 +129,16 @@ namespace St10439541_PROG7311_P2.Controllers
 
                     _logger.LogInformation("New user registered: {Email} with role {Role}", model.Email, model.Role);
 
-                    // If current user is admin creating another admin, don't auto-login
+                    // If current user is admin creating another admin, redirect to Clients (admin only area)
                     if (User.IsInRole("Admin"))
                     {
                         TempData["SuccessMessage"] = $"User {model.Email} created successfully with role {model.Role}!";
                         return RedirectToAction("Index", "Clients");
                     }
 
-                    // Auto login for self-registration
+                    // For self-registration (non-admin), redirect to Home page, NOT Clients
                     await _signInManager.SignInAsync(user, isPersistent: false);
-                    return RedirectToAction("Index", "Home");
+                    return RedirectToAction("Index", "Home");  // FIXED: Changed from "Clients" to "Home"
                 }
 
                 foreach (var error in result.Errors)

@@ -1,12 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using St10439541_PROG7311_P2.Models.ContractStates;
 
 namespace St10439541_PROG7311_P2.Models
 {
     public enum ContractStatus
     {
         Draft,
-        PendingClientSignature,  
+        PendingClientSignature,
         Active,
         Expired,
         OnHold
@@ -66,12 +67,21 @@ namespace St10439541_PROG7311_P2.Models
 
         public virtual ICollection<ServiceRequest> ServiceRequests { get; set; } = new List<ServiceRequest>();
 
-        public bool CanCreateServiceRequest()
-        {
-            return Status == ContractStatus.Active && IsSignedByClient;
-        }
+        
+        // STATE PATTERN PROPERTY
+        
+        [NotMapped]
+        public IContractState State => ContractStateFactory.GetState(Status);
 
         
+        // BUSINESS RULE METHODS (Updated with State Pattern)
+        
+
+        public bool CanCreateServiceRequest()
+        {
+            return State.CanCreateServiceRequest() && IsSignedByClient;
+        }
+
         public bool IsExpired()
         {
             return DateTime.Today > EndDate || Status == ContractStatus.Expired;
@@ -79,7 +89,19 @@ namespace St10439541_PROG7311_P2.Models
 
         public bool CanBeSigned()
         {
-            return Status == ContractStatus.PendingClientSignature && !IsSignedByClient;
+            return State.CanBeSigned() && !IsSignedByClient;
+        }
+
+        // NEW: Check if contract can be edited
+        public bool CanBeEdited()
+        {
+            return State.CanBeEdited();
+        }
+
+        // NEW: Get display name from state
+        public string GetStateDisplayName()
+        {
+            return State.GetDisplayName();
         }
     }
 }

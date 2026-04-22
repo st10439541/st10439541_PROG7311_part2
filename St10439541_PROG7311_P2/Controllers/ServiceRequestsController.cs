@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Models;
 using St10439541_PROG7311_P2.Services;
+using St10439541_PROG7311_P2.Services.Observers;
 
 namespace St10439541_PROG7311_P2.Controllers
 {
@@ -19,17 +20,20 @@ namespace St10439541_PROG7311_P2.Controllers
         private readonly ICurrencyExchangeService _currencyService;
         private readonly ILogger<ServiceRequestsController> _logger;
         private readonly IServiceProvider _serviceProvider;
+        private readonly ObserverManager _observerManager;  // ADD THIS
 
         public ServiceRequestsController(
             ApplicationDbContext context,
             ICurrencyExchangeService currencyService,
             ILogger<ServiceRequestsController> logger,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            ObserverManager observerManager)  // ADD THIS PARAMETER
         {
             _context = context;
             _currencyService = currencyService;
             _logger = logger;
             _serviceProvider = serviceProvider;
+            _observerManager = observerManager;  // ADD THIS
         }
 
         // GET: ServiceRequests
@@ -41,7 +45,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 .ThenInclude(c => c!.Client)
                 .ToListAsync();
 
-            // If not admin, filter to only show service requests for their own contracts
             if (!User.IsInRole("Admin"))
             {
                 using var scope = _serviceProvider.CreateScope();
@@ -82,7 +85,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Check if user has access to this service request
             if (!User.IsInRole("Admin"))
             {
                 using var scope = _serviceProvider.CreateScope();
@@ -104,13 +106,11 @@ namespace St10439541_PROG7311_P2.Controllers
         [Authorize]
         public async Task<IActionResult> Create()
         {
-            // Get only active contracts for service request creation
             var activeContracts = await _context.Contracts
                 .Include(c => c.Client)
                 .Where(c => c.Status == ContractStatus.Active && c.EndDate >= DateTime.Today && c.IsSignedByClient == true)
                 .ToListAsync();
 
-            // If not admin, only show their own contracts
             if (!User.IsInRole("Admin"))
             {
                 using var scope = _serviceProvider.CreateScope();
@@ -151,7 +151,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return View(serviceRequest);
             }
 
-            // If not admin, verify the contract belongs to this client
             if (!User.IsInRole("Admin"))
             {
                 using var scope = _serviceProvider.CreateScope();
@@ -182,6 +181,10 @@ namespace St10439541_PROG7311_P2.Controllers
             {
                 _context.Add(serviceRequest);
                 await _context.SaveChangesAsync();
+
+                // NOTIFY OBSERVERS - ADD THIS
+                await _observerManager.OnServiceRequestCreated(serviceRequest);
+
                 _logger.LogInformation("Created new service request (ID: {RequestId}) for Contract {ContractId}", serviceRequest.ServiceRequestId, serviceRequest.ContractId);
                 TempData["SuccessMessage"] = "Service request created successfully!";
                 return RedirectToAction(nameof(Index));
@@ -226,7 +229,10 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
+            // Get old status for observer notification
             var existingRequest = await _context.ServiceRequests.AsNoTracking().FirstOrDefaultAsync(s => s.ServiceRequestId == id);
+            var oldStatus = existingRequest?.Status;
+
             if (existingRequest != null && existingRequest.AmountUSD != serviceRequest.AmountUSD)
             {
                 var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
@@ -240,6 +246,13 @@ namespace St10439541_PROG7311_P2.Controllers
                 {
                     _context.Update(serviceRequest);
                     await _context.SaveChangesAsync();
+
+                    // NOTIFY OBSERVERS - ADD THIS
+                    if (oldStatus.HasValue && oldStatus.Value != serviceRequest.Status)
+                    {
+                        await _observerManager.OnServiceRequestStatusChanged(serviceRequest, oldStatus.Value, serviceRequest.Status);
+                    }
+
                     _logger.LogInformation("Updated service request (ID: {RequestId})", serviceRequest.ServiceRequestId);
                     TempData["SuccessMessage"] = "Service request updated successfully!";
                 }
@@ -345,11 +358,16 @@ namespace St10439541_PROG7311_P2.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var oldStatus = serviceRequest.Status;  // ADD THIS
+
             serviceRequest.Status = RequestStatus.Accepted;
             serviceRequest.AdminResponseDate = DateTime.Now;
             serviceRequest.AdminComments = adminComments;
 
             await _context.SaveChangesAsync();
+
+            // NOTIFY OBSERVERS - ADD THIS
+            await _observerManager.OnServiceRequestStatusChanged(serviceRequest, oldStatus, serviceRequest.Status);
 
             _logger.LogInformation("Service request {RequestId} was ACCEPTED by admin", serviceRequest.ServiceRequestId);
             TempData["SuccessMessage"] = "Service request has been ACCEPTED!";
@@ -404,11 +422,16 @@ namespace St10439541_PROG7311_P2.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var oldStatus = serviceRequest.Status;  // ADD THIS
+
             serviceRequest.Status = RequestStatus.Denied;
             serviceRequest.AdminResponseDate = DateTime.Now;
             serviceRequest.AdminComments = adminComments;
 
             await _context.SaveChangesAsync();
+
+            // NOTIFY OBSERVERS - ADD THIS
+            await _observerManager.OnServiceRequestStatusChanged(serviceRequest, oldStatus, serviceRequest.Status);
 
             _logger.LogInformation("Service request {RequestId} was DENIED by admin", serviceRequest.ServiceRequestId);
             TempData["SuccessMessage"] = "Service request has been DENIED.";
@@ -431,7 +454,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 .Where(c => c.Status == ContractStatus.Active && c.EndDate >= DateTime.Today)
                 .ToListAsync();
 
-            // If not admin, only show their own contracts
             if (!User.IsInRole("Admin"))
             {
                 using var scope = _serviceProvider.CreateScope();

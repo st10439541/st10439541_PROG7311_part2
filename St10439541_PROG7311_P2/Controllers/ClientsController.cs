@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using St10439541_PROG7311_P2.Data;
 using St10439541_PROG7311_P2.Models;
+using St10439541_PROG7311_P2.Services;
+using St10439541_PROG7311_P2.Services.Observers;
 
 namespace St10439541_PROG7311_P2.Controllers
 {
@@ -18,30 +20,34 @@ namespace St10439541_PROG7311_P2.Controllers
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ClientsController> _logger;
         private readonly IServiceProvider _serviceProvider;
-        // Dictionary to store passwords temporarily (in production, use a database table)
+        private readonly ObserverManager _observerManager;
         private static Dictionary<int, string> _userPasswords = new Dictionary<int, string>();
 
-        public ClientsController(ApplicationDbContext context, ILogger<ClientsController> logger, IServiceProvider serviceProvider)
+        public ClientsController(
+            ApplicationDbContext context,
+            ILogger<ClientsController> logger,
+            IServiceProvider serviceProvider,
+            ObserverManager observerManager)
         {
             _context = context;
             _logger = logger;
             _serviceProvider = serviceProvider;
+            _observerManager = observerManager;
         }
 
         // GET: Clients
         public async Task<IActionResult> Index(string? roleFilter)
         {
-            // Get all clients
+            System.Diagnostics.Debug.WriteLine(">>> ClientsController.Index() was called <<<");
+
             var clients = await _context.Clients
                 .Include(c => c.Contracts)
                 .ToListAsync();
 
-            // Get all users to display roles
             using var scope = _serviceProvider.CreateScope();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
             var allUsers = await userManager.Users.ToListAsync();
 
-            // Apply role filter if specified
             if (!string.IsNullOrEmpty(roleFilter))
             {
                 var filteredUserIds = allUsers
@@ -50,7 +56,7 @@ namespace St10439541_PROG7311_P2.Controllers
                     .Where(id => id.HasValue)
                     .Select(id => id.Value)
                     .ToList();
-                
+
                 clients = clients.Where(c => filteredUserIds.Contains(c.ClientId)).ToList();
             }
 
@@ -115,11 +121,11 @@ namespace St10439541_PROG7311_P2.Controllers
                     return View(client);
                 }
 
-                // Save the client first
                 _context.Add(client);
                 await _context.SaveChangesAsync();
 
-                // Create the user account
+                await _observerManager.OnClientCreated(client);
+
                 var user = new User
                 {
                     UserName = client.ContactEmail,
@@ -131,14 +137,13 @@ namespace St10439541_PROG7311_P2.Controllers
                     IsAdmin = client.SelectedRole == "Admin",
                     RegistrationDate = DateTime.Now,
                     ClientId = client.ClientId,
-                    PlainTextPassword = client.Password // Store the plain text password
+                    PlainTextPassword = client.Password
                 };
 
                 var result = await userManager.CreateAsync(user, client.Password);
 
                 if (result.Succeeded)
                 {
-                    // Store password in dictionary for display
                     _userPasswords[client.ClientId] = client.Password;
 
                     if (client.SelectedRole == "Admin")
@@ -152,6 +157,8 @@ namespace St10439541_PROG7311_P2.Controllers
 
                     _logger.LogInformation("Created new client: {ClientName} (ID: {ClientId}) with role: {Role}", client.Name, client.ClientId, client.SelectedRole);
                     TempData["SuccessMessage"] = $"Client '{client.Name}' created successfully with role: {client.SelectedRole}! Password: {client.Password}";
+
+                    // FIXED: Use RedirectToAction, NOT return View("Index", client)
                     return RedirectToAction(nameof(Index));
                 }
                 else
@@ -232,6 +239,8 @@ namespace St10439541_PROG7311_P2.Controllers
                     _context.Update(client);
                     await _context.SaveChangesAsync();
 
+                    await _observerManager.OnClientUpdated(client);
+
                     using var scope = _serviceProvider.CreateScope();
                     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
                     var user = await userManager.Users.FirstOrDefaultAsync(u => u.ClientId == client.ClientId);
@@ -245,7 +254,6 @@ namespace St10439541_PROG7311_P2.Controllers
                         user.Email = client.ContactEmail;
                         user.UserName = client.ContactEmail;
 
-                        // Update password if provided
                         if (!string.IsNullOrEmpty(client.NewPassword))
                         {
                             var token = await userManager.GeneratePasswordResetTokenAsync(user);
@@ -260,7 +268,6 @@ namespace St10439541_PROG7311_P2.Controllers
                                 return View(client);
                             }
 
-                            // Update stored password
                             _userPasswords[client.ClientId] = client.NewPassword;
                             _logger.LogInformation("Password changed for user: {UserEmail}", user.Email);
                         }
@@ -346,6 +353,8 @@ namespace St10439541_PROG7311_P2.Controllers
                         throw;
                     }
                 }
+
+                // FIXED: Use RedirectToAction, NOT return View("Index", client)
                 return RedirectToAction(nameof(Index));
             }
             return View(client);
@@ -388,8 +397,9 @@ namespace St10439541_PROG7311_P2.Controllers
                     await userManager.DeleteAsync(user);
                 }
 
-                // Remove from password dictionary
                 _userPasswords.Remove(client.ClientId);
+
+                await _observerManager.OnClientDeleted(client);
 
                 _context.Clients.Remove(client);
                 _logger.LogWarning("Deleted client: {ClientName} (ID: {ClientId})", client.Name, client.ClientId);
@@ -397,6 +407,8 @@ namespace St10439541_PROG7311_P2.Controllers
 
             await _context.SaveChangesAsync();
             TempData["SuccessMessage"] = "Client deleted successfully!";
+
+            // FIXED: Use RedirectToAction
             return RedirectToAction(nameof(Index));
         }
 
