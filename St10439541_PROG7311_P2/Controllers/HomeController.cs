@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using St10439541_PROG7311_P2.Models;
 using System.Diagnostics;
 
-namespace TechMoveLogistics.Controllers;
+namespace St10439541_PROG7311_P2.Controllers;
 
 public class HomeController : Controller
 {

@@ -124,15 +124,35 @@ namespace St10439541_PROG7311_P2.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ClientId,StartDate,EndDate,ServiceLevel,TermsAndConditions")] Contract contract, IFormFile? PdfFile)
+        public async Task<IActionResult> Create([Bind("ClientId,StartDate,EndDate,Status,ServiceLevel,TermsAndConditions")] Contract contract, IFormFile? PdfFile)
         {
             // Repopulate ViewBag.Clients in case of error
             var clients = await _context.Clients.ToListAsync();
             ViewBag.Clients = new SelectList(clients, "ClientId", "Name", contract.ClientId);
 
-            // Set initial status to PendingClientSignature (waiting for client to sign)
-            contract.Status = ContractStatus.PendingClientSignature;
-            contract.IsSignedByClient = false;
+            // Handle the status based on what admin selected
+            if (contract.Status == ContractStatus.Active)
+            {
+                contract.IsSignedByClient = true;
+                contract.SignatureDate = DateTime.Now;
+            }
+            else if (contract.Status == ContractStatus.PendingClientSignature)
+            {
+                contract.IsSignedByClient = false;
+                contract.SignatureDate = null;
+            }
+            else if (contract.Status == ContractStatus.Expired || contract.Status == ContractStatus.OnHold || contract.Status == ContractStatus.Draft)
+            {
+                contract.IsSignedByClient = false;
+                contract.SignatureDate = null;
+            }
+            else
+            {
+                // Default if no status selected
+                contract.Status = ContractStatus.PendingClientSignature;
+                contract.IsSignedByClient = false;
+                contract.SignatureDate = null;
+            }
 
             // Handle file upload (PDF from admin - contract document)
             if (PdfFile != null && PdfFile.Length > 0)
@@ -163,8 +183,10 @@ namespace St10439541_PROG7311_P2.Controllers
             {
                 _context.Add(contract);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("Created new contract (ID: {ContractId}) for Client {ClientId} - Status: PendingClientSignature", contract.ContractId, contract.ClientId);
-                TempData["SuccessMessage"] = "Contract created successfully! Waiting for client signature.";
+
+                string statusMessage = contract.Status == ContractStatus.PendingClientSignature ? "Waiting for client signature." : $"Status: {contract.Status}";
+                _logger.LogInformation("Created new contract (ID: {ContractId}) for Client {ClientId} - Status: {Status}", contract.ContractId, contract.ClientId, contract.Status);
+                TempData["SuccessMessage"] = $"Contract created successfully! {statusMessage}";
                 return RedirectToAction(nameof(Index));
             }
 

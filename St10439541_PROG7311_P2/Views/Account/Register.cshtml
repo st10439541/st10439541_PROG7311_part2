@@ -2,7 +2,6 @@
 
 @{
     ViewData["Title"] = "Register";
-    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="row justify-content-center">
@@ -12,63 +11,81 @@
                 <h4 class="mb-0">Register for TechMove Logistics</h4>
             </div>
             <div class="card-body">
-                <form asp-action="Register" asp-controller="Account" method="post">
+                <form asp-action="Register" method="post">
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                    
+
                     <div class="form-group mb-3">
                         <label asp-for="FullName" class="control-label"></label>
                         <input asp-for="FullName" class="form-control" />
                         <span asp-validation-for="FullName" class="text-danger"></span>
                     </div>
-                    
+
                     <div class="form-group mb-3">
                         <label asp-for="Email" class="control-label"></label>
                         <input asp-for="Email" class="form-control" type="email" />
                         <span asp-validation-for="Email" class="text-danger"></span>
                     </div>
-                    
+
                     <div class="form-group mb-3">
                         <label asp-for="CompanyName" class="control-label"></label>
                         <input asp-for="CompanyName" class="form-control" />
                         <span asp-validation-for="CompanyName" class="text-danger"></span>
                     </div>
-                    
+
                     <div class="form-group mb-3">
                         <label asp-for="Address" class="control-label"></label>
                         <textarea asp-for="Address" class="form-control" rows="2"></textarea>
                         <span asp-validation-for="Address" class="text-danger"></span>
                     </div>
-                    
+
                     <div class="form-group mb-3">
                         <label asp-for="Region" class="control-label"></label>
                         <input asp-for="Region" class="form-control" />
                         <span asp-validation-for="Region" class="text-danger"></span>
                     </div>
-                    
+
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <div class="form-group mb-3">
+                            <label asp-for="Role" class="control-label"></label>
+                            <select asp-for="Role" class="form-control">
+                                <option value="User">Client</option>
+                                <option value="Admin">Administrator</option>
+                            </select>
+                            <span asp-validation-for="Role" class="text-danger"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="Role" value="User" />
+                    }
+
                     <div class="form-group mb-3">
                         <label asp-for="Password" class="control-label"></label>
                         <input asp-for="Password" class="form-control" type="password" />
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
-                    
+
                     <div class="form-group mb-3">
                         <label asp-for="ConfirmPassword" class="control-label"></label>
                         <input asp-for="ConfirmPassword" class="form-control" type="password" />
                         <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
                     </div>
-                    
+
                     <div class="form-group">
                         <button type="submit" class="btn btn-success w-100">Register</button>
                     </div>
                 </form>
             </div>
             <div class="card-footer text-center">
-                <p class="mb-0">Already have an account? <a asp-action="Login" asp-controller="Account">Login here</a></p>
+                <p class="mb-0">Already have an account? <a asp-action="Login">Login here</a></p>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

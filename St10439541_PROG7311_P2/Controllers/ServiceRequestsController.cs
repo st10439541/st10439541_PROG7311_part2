@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -28,9 +29,9 @@ namespace St10439541_PROG7311_P2.Controllers
         }
 
         // GET: ServiceRequests
+        [Authorize]
         public async Task<IActionResult> Index()
         {
-            // Include Contract and Client information for display
             var serviceRequests = await _context.ServiceRequests
                 .Include(s => s.Contract)
                 .ThenInclude(c => c!.Client)
@@ -39,6 +40,7 @@ namespace St10439541_PROG7311_P2.Controllers
         }
 
         // GET: ServiceRequests/Details/5
+        [Authorize]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -46,7 +48,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Include related Contract and Client information
             var serviceRequest = await _context.ServiceRequests
                 .Include(s => s.Contract)
                 .ThenInclude(c => c!.Client)
@@ -61,18 +62,15 @@ namespace St10439541_PROG7311_P2.Controllers
         }
 
         // GET: ServiceRequests/Create
+        [Authorize]
         public async Task<IActionResult> Create()
         {
-            // Get only active contracts for service request creation
-            // Business rule: ServiceRequest cannot be created if Contract is Expired or On Hold
             var activeContracts = await _context.Contracts
                 .Include(c => c.Client)
-                .Where(c => c.Status == ContractStatus.Active && c.EndDate >= DateTime.Today)
+                .Where(c => c.Status == ContractStatus.Active && c.EndDate >= DateTime.Today && c.IsSignedByClient == true)
                 .ToListAsync();
 
             ViewBag.Contracts = new SelectList(activeContracts, "ContractId", "Client.Name");
-
-            // Get current exchange rate for the view
             var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
             ViewBag.ExchangeRate = exchangeRate;
 
@@ -80,12 +78,11 @@ namespace St10439541_PROG7311_P2.Controllers
         }
 
         // POST: ServiceRequests/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
         [HttpPost]
+        [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("ContractId,Description,AmountUSD")] ServiceRequest serviceRequest)
         {
-            // Validate that contract exists and is active (workflow logic)
             var contract = await _context.Contracts.FindAsync(serviceRequest.ContractId);
 
             if (contract == null)
@@ -95,7 +92,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return View(serviceRequest);
             }
 
-            // Business rule: ServiceRequest cannot be created if Contract is Expired or On Hold
             if (!contract.CanCreateServiceRequest())
             {
                 ModelState.AddModelError(string.Empty,
@@ -104,16 +100,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return View(serviceRequest);
             }
 
-            // Additional check: Contract should not be expired by date
-            if (contract.IsExpired())
-            {
-                ModelState.AddModelError(string.Empty,
-                    "Cannot create service request. Contract has expired.");
-                await PopulateCreateView();
-                return View(serviceRequest);
-            }
-
-            // Get current exchange rate and calculate ZAR amount
             var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
             serviceRequest.ExchangeRateUsed = exchangeRate;
             serviceRequest.AmountZAR = serviceRequest.AmountUSD * exchangeRate;
@@ -124,8 +110,8 @@ namespace St10439541_PROG7311_P2.Controllers
             {
                 _context.Add(serviceRequest);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("Created new service request (ID: {RequestId}) for Contract {ContractId} - Amount: ${AmountUSD} USD (R{AmountZAR} ZAR)",
-                    serviceRequest.ServiceRequestId, serviceRequest.ContractId, serviceRequest.AmountUSD, serviceRequest.AmountZAR);
+                _logger.LogInformation("Created new service request (ID: {RequestId})", serviceRequest.ServiceRequestId);
+                TempData["SuccessMessage"] = "Service request created successfully!";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -133,7 +119,126 @@ namespace St10439541_PROG7311_P2.Controllers
             return View(serviceRequest);
         }
 
+        // GET: ServiceRequests/Accept/5
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Accept(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var serviceRequest = await _context.ServiceRequests
+                .Include(s => s.Contract)
+                .ThenInclude(c => c!.Client)
+                .FirstOrDefaultAsync(s => s.ServiceRequestId == id);
+
+            if (serviceRequest == null)
+            {
+                return NotFound();
+            }
+
+            if (serviceRequest.Status != RequestStatus.Pending)
+            {
+                TempData["ErrorMessage"] = "This service request has already been processed.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(serviceRequest);
+        }
+
+        // POST: ServiceRequests/Accept/5
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Accept(int id, string? adminComments)
+        {
+            var serviceRequest = await _context.ServiceRequests.FindAsync(id);
+
+            if (serviceRequest == null)
+            {
+                return NotFound();
+            }
+
+            if (serviceRequest.Status != RequestStatus.Pending)
+            {
+                TempData["ErrorMessage"] = "This service request has already been processed.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            serviceRequest.Status = RequestStatus.Accepted;
+            serviceRequest.AdminResponseDate = DateTime.Now;
+            serviceRequest.AdminComments = adminComments;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Service request {RequestId} was ACCEPTED by admin", serviceRequest.ServiceRequestId);
+            TempData["SuccessMessage"] = "Service request has been ACCEPTED!";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // GET: ServiceRequests/Deny/5
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Deny(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var serviceRequest = await _context.ServiceRequests
+                .Include(s => s.Contract)
+                .ThenInclude(c => c!.Client)
+                .FirstOrDefaultAsync(s => s.ServiceRequestId == id);
+
+            if (serviceRequest == null)
+            {
+                return NotFound();
+            }
+
+            if (serviceRequest.Status != RequestStatus.Pending)
+            {
+                TempData["ErrorMessage"] = "This service request has already been processed.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(serviceRequest);
+        }
+
+        // POST: ServiceRequests/Deny/5
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Deny(int id, string? adminComments)
+        {
+            var serviceRequest = await _context.ServiceRequests.FindAsync(id);
+
+            if (serviceRequest == null)
+            {
+                return NotFound();
+            }
+
+            if (serviceRequest.Status != RequestStatus.Pending)
+            {
+                TempData["ErrorMessage"] = "This service request has already been processed.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            serviceRequest.Status = RequestStatus.Denied;
+            serviceRequest.AdminResponseDate = DateTime.Now;
+            serviceRequest.AdminComments = adminComments;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Service request {RequestId} was DENIED by admin", serviceRequest.ServiceRequestId);
+            TempData["SuccessMessage"] = "Service request has been DENIED.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
         // GET: ServiceRequests/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -147,7 +252,6 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Get active contracts for the dropdown
             var activeContracts = await _context.Contracts
                 .Include(c => c.Client)
                 .Where(c => c.Status == ContractStatus.Active && c.EndDate >= DateTime.Today)
@@ -158,8 +262,8 @@ namespace St10439541_PROG7311_P2.Controllers
         }
 
         // POST: ServiceRequests/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("ServiceRequestId,ContractId,Description,AmountUSD,AmountZAR,Status,ExchangeRateUsed")] ServiceRequest serviceRequest)
         {
@@ -168,25 +272,12 @@ namespace St10439541_PROG7311_P2.Controllers
                 return NotFound();
             }
 
-            // Verify the contract is still active for this edit
-            var contract = await _context.Contracts.FindAsync(serviceRequest.ContractId);
-            if (contract != null && !contract.CanCreateServiceRequest())
-            {
-                ModelState.AddModelError(string.Empty,
-                    $"Cannot edit service request. Contract is {contract?.Status}. Only Active contracts can have service requests.");
-                await PopulateEditView(serviceRequest.ServiceRequestId);
-                return View(serviceRequest);
-            }
-
-            // Recalculate ZAR amount if USD amount changed
             var existingRequest = await _context.ServiceRequests.AsNoTracking().FirstOrDefaultAsync(s => s.ServiceRequestId == id);
             if (existingRequest != null && existingRequest.AmountUSD != serviceRequest.AmountUSD)
             {
                 var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
                 serviceRequest.ExchangeRateUsed = exchangeRate;
                 serviceRequest.AmountZAR = serviceRequest.AmountUSD * exchangeRate;
-                _logger.LogInformation("Recalculated ZAR amount for Service Request {RequestId}: ${AmountUSD} USD * {Rate} = R{AmountZAR} ZAR",
-                    serviceRequest.ServiceRequestId, serviceRequest.AmountUSD, exchangeRate, serviceRequest.AmountZAR);
             }
 
             if (ModelState.IsValid)
@@ -195,8 +286,8 @@ namespace St10439541_PROG7311_P2.Controllers
                 {
                     _context.Update(serviceRequest);
                     await _context.SaveChangesAsync();
-                    _logger.LogInformation("Updated service request (ID: {RequestId}) - Status: {Status}",
-                        serviceRequest.ServiceRequestId, serviceRequest.Status);
+                    _logger.LogInformation("Updated service request (ID: {RequestId})", serviceRequest.ServiceRequestId);
+                    TempData["SuccessMessage"] = "Service request updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -204,10 +295,7 @@ namespace St10439541_PROG7311_P2.Controllers
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
@@ -217,6 +305,7 @@ namespace St10439541_PROG7311_P2.Controllers
         }
 
         // GET: ServiceRequests/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -239,6 +328,7 @@ namespace St10439541_PROG7311_P2.Controllers
 
         // POST: ServiceRequests/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
@@ -246,15 +336,15 @@ namespace St10439541_PROG7311_P2.Controllers
             if (serviceRequest != null)
             {
                 _context.ServiceRequests.Remove(serviceRequest);
-                _logger.LogWarning("Deleted service request (ID: {RequestId}) for Contract {ContractId}",
-                    serviceRequest.ServiceRequestId, serviceRequest.ContractId);
+                _logger.LogWarning("Deleted service request (ID: {RequestId})", serviceRequest.ServiceRequestId);
             }
 
             await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Service request deleted successfully!";
             return RedirectToAction(nameof(Index));
         }
 
-        // API endpoint to get current exchange rate (for AJAX calls from the create/edit page)
+        // API endpoint to get current exchange rate
         [HttpGet]
         public async Task<IActionResult> GetExchangeRate()
         {
@@ -262,7 +352,6 @@ namespace St10439541_PROG7311_P2.Controllers
             return Json(new { rate });
         }
 
-        // Helper method to populate the Create view with required data
         private async Task PopulateCreateView()
         {
             var activeContracts = await _context.Contracts
@@ -271,12 +360,10 @@ namespace St10439541_PROG7311_P2.Controllers
                 .ToListAsync();
 
             ViewBag.Contracts = new SelectList(activeContracts, "ContractId", "Client.Name");
-
             var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
             ViewBag.ExchangeRate = exchangeRate;
         }
 
-        // Helper method to populate the Edit view with required data
         private async Task PopulateEditView(int serviceRequestId)
         {
             var activeContracts = await _context.Contracts

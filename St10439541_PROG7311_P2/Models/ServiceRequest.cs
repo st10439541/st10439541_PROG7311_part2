@@ -8,7 +8,9 @@ namespace St10439541_PROG7311_P2.Models
         Pending,
         InProgress,
         Completed,
-        Cancelled
+        Cancelled,
+        Accepted,  // New status
+        Denied     // New status
     }
 
     public class ServiceRequest
@@ -43,6 +45,14 @@ namespace St10439541_PROG7311_P2.Models
         [Display(Name = "Exchange Rate Used")]
         [Column(TypeName = "decimal(18,4)")]
         public decimal ExchangeRateUsed { get; set; }
+
+        [Display(Name = "Admin Response Date")]
+        [DataType(DataType.DateTime)]
+        public DateTime? AdminResponseDate { get; set; }
+
+        [Display(Name = "Admin Comments")]
+        [StringLength(500)]
+        public string? AdminComments { get; set; }
 
         // Navigation property
         [ForeignKey("ContractId")]

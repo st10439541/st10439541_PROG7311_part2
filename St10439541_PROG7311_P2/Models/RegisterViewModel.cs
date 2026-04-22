@@ -38,5 +38,8 @@ namespace St10439541_PROG7311_P2.Models
         [Display(Name = "Confirm Password")]
         [Compare("Password", ErrorMessage = "Passwords do not match.")]
         public string ConfirmPassword { get; set; } = string.Empty;
+
+        [Display(Name = "Role")]
+        public string Role { get; set; } = "User"; // Default to User (Client)
     }
 }

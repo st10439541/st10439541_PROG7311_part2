@@ -76,6 +76,13 @@ namespace St10439541_PROG7311_P2.Controllers
                     return View(model);
                 }
 
+                // Determine if this is an admin (only existing admins can create other admins)
+                bool isAdmin = false;
+                if (model.Role == "Admin" && User.IsInRole("Admin"))
+                {
+                    isAdmin = true;
+                }
+
                 // Create the user
                 var user = new User
                 {
@@ -85,7 +92,7 @@ namespace St10439541_PROG7311_P2.Controllers
                     CompanyName = model.CompanyName,
                     Address = model.Address,
                     Region = model.Region,
-                    IsAdmin = false, // Regular user by default
+                    IsAdmin = isAdmin,
                     RegistrationDate = DateTime.Now
                 };
 
@@ -98,7 +105,7 @@ namespace St10439541_PROG7311_P2.Controllers
                     {
                         Name = model.CompanyName,
                         ContactEmail = model.Email,
-                        ContactPhone = "Not provided", // Default value
+                        ContactPhone = "Not provided",
                         Address = model.Address,
                         Region = model.Region
                     };
@@ -110,12 +117,26 @@ namespace St10439541_PROG7311_P2.Controllers
                     user.ClientId = client.ClientId;
                     await _userManager.UpdateAsync(user);
 
-                    // Add user to "User" role (you can create roles if needed)
-                    await _userManager.AddToRoleAsync(user, "User");
+                    // Add role
+                    if (isAdmin)
+                    {
+                        await _userManager.AddToRoleAsync(user, "Admin");
+                    }
+                    else
+                    {
+                        await _userManager.AddToRoleAsync(user, "User");
+                    }
 
-                    _logger.LogInformation("New user registered: {Email} with Client ID: {ClientId}", model.Email, client.ClientId);
+                    _logger.LogInformation("New user registered: {Email} with role {Role}", model.Email, model.Role);
 
-                    // Auto login after registration
+                    // If current user is admin creating another admin, don't auto-login
+                    if (User.IsInRole("Admin"))
+                    {
+                        TempData["SuccessMessage"] = $"User {model.Email} created successfully with role {model.Role}!";
+                        return RedirectToAction("Index", "Clients");
+                    }
+
+                    // Auto login for self-registration
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return RedirectToAction("Index", "Home");
                 }

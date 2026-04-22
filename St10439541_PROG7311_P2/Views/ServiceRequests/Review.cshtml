@@ -1,0 +1,69 @@
+﻿@model St10439541_PROG7311_P2.Models.ServiceRequest
+
+@{
+    var action = ViewBag.Action as string;
+    var isAccept = action == "Accept";
+    var title = isAccept ? "Accept Service Request" : "Deny Service Request";
+    var cardClass = isAccept ? "bg-success" : "bg-danger";
+    var buttonClass = isAccept ? "btn-success" : "btn-danger";
+    var buttonText = isAccept ? "Accept Request" : "Deny Request";
+    var alertClass = isAccept ? "alert-success" : "alert-danger";
+    var confirmMessage = isAccept ? "accept this service request" : "deny this service request";
+
+    ViewData["Title"] = title;
+}
+
+<h1>@title</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header @cardClass text-white">
+                <h4>Service Request Details</h4>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Client</dt>
+                    <dd class="col-sm-8">@(Model.Contract?.Client?.Name ?? "N/A")</dd>
+
+                    <dt class="col-sm-4">Contract ID</dt>
+                    <dd class="col-sm-8">@Model.ContractId</dd>
+
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@Model.Description</dd>
+
+                    <dt class="col-sm-4">Amount (USD)</dt>
+                    <dd class="col-sm-8">$@(Model.AmountUSD.ToString("N2"))</dd>
+
+                    <dt class="col-sm-4">Amount (ZAR)</dt>
+                    <dd class="col-sm-8">R@(Model.AmountZAR.ToString("N2"))</dd>
+
+                    <dt class="col-sm-4">Current Status</dt>
+                    <dd class="col-sm-8"><span class="badge bg-warning">@Model.Status</span></dd>
+                </dl>
+
+                <form method="post" asp-action="Review" asp-route-id="@Model.ServiceRequestId" asp-route-action="@action">
+                    <div class="form-group mb-3">
+                        <label class="control-label">
+                            @(isAccept ? "Admin Comments (Optional)" : "Reason for Denial")
+                        </label>
+                        <textarea name="adminComments" class="form-control" rows="3"
+                                  placeholder="@(isAccept ? "Add any comments about this approval..." : "Please provide a reason for denying this request...")"
+                                  @(isAccept ? "" : "required")></textarea>
+                        @if (!isAccept)
+                        {
+                            <small class="text-muted">A reason for denial is required.</small>
+                        }
+                    </div>
+
+                    <div class="alert @alertClass">
+                        <strong>Confirm:</strong> Are you sure you want to @confirmMessage?
+                    </div>
+
+                    <button type="submit" class="btn @buttonClass">Yes, @buttonText</button>
+                    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

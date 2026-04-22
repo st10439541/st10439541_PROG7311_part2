@@ -1,0 +1,55 @@
+﻿@model St10439541_PROG7311_P2.Models.ServiceRequest
+
+@{
+    ViewData["Title"] = "Deny Service Request";
+}
+
+<h1>Deny Service Request</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4>Service Request Details</h4>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Client</dt>
+                    <dd class="col-sm-8">@Model.Contract?.Client?.Name</dd>
+
+                    <dt class="col-sm-4">Contract ID</dt>
+                    <dd class="col-sm-8">@Model.ContractId</dd>
+
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@Model.Description</dd>
+
+                    <dt class="col-sm-4">Amount (USD)</dt>
+                    <dd class="col-sm-8">$@(Model.AmountUSD.ToString("N2"))</dd>
+
+                    <dt class="col-sm-4">Amount (ZAR)</dt>
+                    <dd class="col-sm-8">R@(Model.AmountZAR.ToString("N2"))</dd>
+
+                    <dt class="col-sm-4">Current Status</dt>
+                    <dd class="col-sm-8"><span class="badge bg-warning">@Model.Status</span></dd>
+                </dl>
+
+                <form method="post">
+                    <input type="hidden" name="id" value="@Model.ServiceRequestId" />
+
+                    <div class="form-group mb-3">
+                        <label class="control-label">Reason for Denial</label>
+                        <textarea name="adminComments" class="form-control" rows="3" placeholder="Please provide a reason for denying this request..." required></textarea>
+                        <small class="text-muted">A reason for denial is required.</small>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <strong>Confirm:</strong> Are you sure you want to deny this service request?
+                    </div>
+
+                    <button type="submit" class="btn btn-danger">Yes, Deny Request</button>
+                    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
