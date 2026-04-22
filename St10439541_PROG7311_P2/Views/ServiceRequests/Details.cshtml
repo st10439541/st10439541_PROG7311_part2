@@ -93,8 +93,8 @@
 <div>
     @if (User.IsInRole("Admin") && Model.Status == RequestStatus.Pending)
     {
-        <a asp-action="Review" asp-route-id="@Model.ServiceRequestId" asp-route-action="Accept" class="btn btn-success">Accept</a>
-        <a asp-action="Review" asp-route-id="@Model.ServiceRequestId" asp-route-action="Deny" class="btn btn-danger">Deny</a>
+        <a asp-action="Accept" asp-route-id="@Model.ServiceRequestId" class="btn btn-success">Accept</a>
+        <a asp-action="Deny" asp-route-id="@Model.ServiceRequestId" class="btn btn-danger">Deny</a>
     }
     @if (User.IsInRole("Admin"))
     {

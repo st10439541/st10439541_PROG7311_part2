@@ -50,7 +50,7 @@ namespace St10439541_PROG7311_P2.Controllers
                     .Where(id => id.HasValue)
                     .Select(id => id.Value)
                     .ToList();
-
+                
                 clients = clients.Where(c => filteredUserIds.Contains(c.ClientId)).ToList();
             }
 
