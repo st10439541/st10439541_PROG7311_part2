@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace St10439541_PROG7311_P2.Models
 {
@@ -30,5 +31,8 @@ namespace St10439541_PROG7311_P2.Models
 
         [Display(Name = "Registration Date")]
         public DateTime RegistrationDate { get; set; } = DateTime.Now;
+
+        [NotMapped]
+        public string? PlainTextPassword { get; set; }
     }
 }
